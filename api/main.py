@@ -98,10 +98,13 @@ async def root():
 # Imported here to avoid circular imports; routers are lazy-loaded
 try:
     from api.routers import cases, investigate, actions, graph as graph_router
+    app.include_router(cases.router,       prefix="/api/cases",          tags=["Cases"])
     app.include_router(cases.router,       prefix="/api/v1/cases",       tags=["Cases"])
-    app.include_router(investigate.router, prefix="/api/v1/investigate",  tags=["Investigation"])
-    app.include_router(actions.router,     prefix="/api/v1/actions",      tags=["Actions"])
-    app.include_router(graph_router.router,prefix="/api/v1/graph",        tags=["Graph"])
+    app.include_router(investigate.router, prefix="/api/investigate",    tags=["Investigation"])
+    app.include_router(investigate.router, prefix="/api/v1/investigate", tags=["Investigation"])
+    app.include_router(actions.router,     prefix="/api/actions",        tags=["Actions"])
+    app.include_router(actions.router,     prefix="/api/v1/actions",     tags=["Actions"])
+    app.include_router(graph_router.router,prefix="/api/v1/graph",       tags=["Graph"])
 except ImportError as exc:
     # Routers not yet implemented — skip silently during scaffold phase
     log.warning("routers_not_loaded", error=str(exc))
