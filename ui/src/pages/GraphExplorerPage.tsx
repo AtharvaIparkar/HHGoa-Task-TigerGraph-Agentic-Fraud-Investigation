@@ -65,20 +65,20 @@ export const GraphExplorerPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-slate-200 gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-mono">
-            <Network className="w-5 h-5 text-blue-600" />
-            Entity Topology &amp; Syndicate Rings
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-mono">
+            <Network className="w-5 h-5 text-blue-600 shrink-0" />
+            <span>Entity Topology &amp; Syndicate Rings</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5 font-mono">
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-mono">
             GSQL Connected Components Traversals over TigerGraph FraudGraph
           </p>
         </div>
 
         <Link
           to={`/cases/${currentRing.anchor_case}`}
-          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-mono font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+          className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-mono font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
         >
           <span>Inspect Case {currentRing.anchor_case}</span>
           <ArrowRight className="w-3.5 h-3.5" />

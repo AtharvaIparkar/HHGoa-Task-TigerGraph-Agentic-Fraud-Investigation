@@ -45,65 +45,65 @@ export const DashboardPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* ── Top Header ──────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-slate-200 gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight font-mono">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight font-mono">
             Fraud Operations &amp; Intelligence
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5 font-mono">
-            TigerGraph FraudGraph System of Record · 20 Benchmark Exam Cases Ingested
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-mono">
+            TigerGraph FraudGraph System of Record · 20 Benchmark Cases Ingested
           </p>
         </div>
 
         <Link
           to="/cases"
-          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold font-mono transition-colors flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold font-mono transition-colors flex items-center justify-center gap-1.5 shadow-sm"
         >
           <span>Open Case Workstation</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
-      {/* ── Light KPI Cards ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="text-xs text-slate-500 uppercase font-semibold">Exam Cases</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">20 / 20</div>
-          <div className="text-xs text-emerald-600 font-semibold mt-1">100% Processed</div>
+      {/* ── Light KPI Cards (2 cols on mobile, 4 on desktop) ─────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 font-mono">
+        <div className="p-3 sm:p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[10px] sm:text-xs text-slate-500 uppercase font-semibold">Exam Cases</div>
+          <div className="text-lg sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">20 / 20</div>
+          <div className="text-[10px] sm:text-xs text-emerald-600 font-semibold mt-0.5">100% Processed</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="text-xs text-slate-500 uppercase font-semibold">Device Syndicate Rings</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">8 Clusters</div>
-          <div className="text-xs text-slate-500 mt-1">GSQL Connected Comp</div>
+        <div className="p-3 sm:p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[10px] sm:text-xs text-slate-500 uppercase font-semibold">Syndicate Rings</div>
+          <div className="text-lg sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">8 Clusters</div>
+          <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5">GSQL Connected Comp</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="text-xs text-slate-500 uppercase font-semibold">Sufficiency Gate</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">0.88 Avg</div>
-          <div className="text-xs text-blue-600 font-semibold mt-1">Threshold: 0.70</div>
+        <div className="p-3 sm:p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[10px] sm:text-xs text-slate-500 uppercase font-semibold">Sufficiency Gate</div>
+          <div className="text-lg sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">0.88 Avg</div>
+          <div className="text-[10px] sm:text-xs text-blue-600 font-semibold mt-0.5">Threshold: 0.70</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="text-xs text-slate-500 uppercase font-semibold">FinCEN SAR Filings</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">2 Filed</div>
-          <div className="text-xs text-slate-500 mt-1">31 CFR 1020 Compliant</div>
+        <div className="p-3 sm:p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="text-[10px] sm:text-xs text-slate-500 uppercase font-semibold">FinCEN Filings</div>
+          <div className="text-lg sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">2 Filed</div>
+          <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5">31 CFR 1020 Compliant</div>
         </div>
       </div>
 
       {/* ── Case Stream ──────────────────────────────────────────────── */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-5 space-y-3 sm:space-y-4 shadow-sm">
+        <div className="flex flex-col xs:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2.5">
           <div className="text-xs font-bold text-slate-900 font-mono uppercase tracking-wider">
-            Active Triage Queue
+            Active Triage Queue ({filtered.length})
           </div>
 
           <div className="flex items-center gap-1 font-mono text-xs">
             <button
               onClick={() => setFilterVerdict("all")}
-              className={`px-3 py-1 rounded-lg transition-colors font-medium ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-colors text-[11px] sm:text-xs font-medium ${
                 filterVerdict === "all" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900 bg-slate-50"
               }`}
             >
@@ -111,7 +111,7 @@ export const DashboardPage: React.FC = () => {
             </button>
             <button
               onClick={() => setFilterVerdict("fraud")}
-              className={`px-3 py-1 rounded-lg transition-colors font-medium ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-colors text-[11px] sm:text-xs font-medium ${
                 filterVerdict === "fraud" ? "bg-rose-50 text-rose-700 font-bold border border-rose-200" : "text-slate-600 hover:text-slate-900 bg-slate-50"
               }`}
             >
@@ -119,7 +119,7 @@ export const DashboardPage: React.FC = () => {
             </button>
             <button
               onClick={() => setFilterVerdict("legitimate")}
-              className={`px-3 py-1 rounded-lg transition-colors font-medium ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-colors text-[11px] sm:text-xs font-medium ${
                 filterVerdict === "legitimate" ? "bg-emerald-50 text-emerald-700 font-bold border border-emerald-200" : "text-slate-600 hover:text-slate-900 bg-slate-50"
               }`}
             >
@@ -136,15 +136,15 @@ export const DashboardPage: React.FC = () => {
             return (
               <div
                 key={c.case_id}
-                className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 px-2 rounded-lg transition-colors font-mono text-xs"
+                className="py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 hover:bg-slate-50/80 px-1 sm:px-2 rounded-lg transition-colors font-mono text-xs"
               >
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <Link to={`/cases/${c.case_id}`} className="font-bold text-slate-900 hover:underline">
                       {c.case_id}
                     </Link>
                     <span
-                      className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                      className={`text-[9px] sm:text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
                         c.verdict === "fraud"
                           ? "bg-rose-50 text-rose-700 border-rose-200"
                           : c.verdict === "legitimate"
@@ -154,19 +154,19 @@ export const DashboardPage: React.FC = () => {
                     >
                       {c.verdict}
                     </span>
-                    <span className="text-slate-500 text-xs">
+                    <span className="text-slate-400 text-[11px]">
                       {c.customer_id} · {c.card_id}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 line-clamp-1 font-sans mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-slate-600 line-clamp-1 font-sans">
                     {c.trigger_text}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-right text-xs text-slate-500">
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-50">
+                  <div className="text-left sm:text-right text-[11px] sm:text-xs text-slate-500">
                     Model: <strong className="text-slate-900">{(bScore * 100).toFixed(0)}</strong> · Prob:{" "}
-                    <strong className={aProb > 0.7 ? "text-rose-600" : "text-emerald-600"}>
+                    <strong className={aProb > 0.7 ? "text-rose-600 font-bold" : "text-emerald-600 font-bold"}>
                       {(aProb * 100).toFixed(0)}%
                     </strong>
                   </div>

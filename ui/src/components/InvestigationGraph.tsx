@@ -297,19 +297,19 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
       onMouseLeave={handleMouseUp}
     >
       {/* ── Top Modular Toolbar ─────────────────────────────────────── */}
-      <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-2">
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-auto z-10 flex flex-wrap items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
         {/* Canvas Zoom & Center controls */}
-        <div className="flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-1 shadow-sm">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-0.5 sm:p-1 shadow-sm">
           <button
             onClick={() => handleZoom(0.15)}
-            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => handleZoom(-0.15)}
-            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
@@ -317,14 +317,14 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
           <div className="w-px h-3.5 bg-slate-200 mx-0.5" />
           <button
             onClick={handleCenter}
-            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
             title="Recenter Canvas"
           >
             <Crosshair className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleReset}
-            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
             title="Reset View"
           >
             <Maximize2 className="w-3.5 h-3.5" />
@@ -332,46 +332,48 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
         </div>
 
         {/* Dynamic Layout Mode Selector */}
-        <div className="flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-1 shadow-sm font-mono text-[11px]">
+        <div className="flex items-center bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-0.5 sm:p-1 shadow-sm font-mono text-[10px] sm:text-[11px]">
           <button
             onClick={() => setLayoutMode("flow")}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 font-medium ${
+            className={`px-2 sm:px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5 font-medium ${
               layoutMode === "flow"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <GitBranch className="w-3 h-3" />
-            <span>Lineage Flow</span>
+            <span className="hidden xs:inline">Lineage</span>
+            <span className="xs:hidden">Line</span>
           </button>
           <button
             onClick={() => setLayoutMode("radial")}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 font-medium ${
+            className={`px-2 sm:px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5 font-medium ${
               layoutMode === "radial"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <Radio className="w-3 h-3" />
-            <span>Radial Nexus</span>
+            <span>Radial</span>
           </button>
           <button
             onClick={() => setLayoutMode("cluster")}
-            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 font-medium ${
+            className={`px-2 sm:px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5 font-medium ${
               layoutMode === "cluster"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <Share2 className="w-3 h-3" />
-            <span>Cluster Map</span>
+            <span className="hidden xs:inline">Clusters</span>
+            <span className="xs:hidden">Clust</span>
           </button>
         </div>
 
         {/* Flow Animation Toggle */}
         <button
           onClick={() => setIsFlowAnimated(!isFlowAnimated)}
-          className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-mono flex items-center gap-1.5 shadow-sm transition-all ${
+          className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border text-[10px] sm:text-[11px] font-mono flex items-center gap-1 sm:gap-1.5 shadow-sm transition-all ${
             isFlowAnimated
               ? "bg-blue-50 border-blue-200 text-blue-700 font-semibold"
               : "bg-white border-slate-200 text-slate-500"
@@ -379,12 +381,12 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
           title="Toggle live telemetry pulse animation"
         >
           <Sparkles className="w-3 h-3" />
-          <span>{isFlowAnimated ? "Flow Pulses: ON" : "Flow Pulses: OFF"}</span>
+          <span>{isFlowAnimated ? "Pulses: ON" : "Pulses: OFF"}</span>
         </button>
       </div>
 
       {/* ── Top-Right Entity Filters ─────────────────────────────────── */}
-      <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-1 shadow-sm font-mono text-[10px]">
+      <div className="absolute top-3 right-3 z-10 hidden md:flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-1 shadow-sm font-mono text-[10px]">
         {["all", "transaction", "card", "device", "ring_card"].map((t) => (
           <button
             key={t}
@@ -402,7 +404,7 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
 
       {/* ── Main SVG Canvas ─────────────────────────────────────────── */}
       <svg
-        className="w-full h-84 sm:h-96 cursor-grab active:cursor-grabbing"
+        className="w-full h-84 sm:h-96 cursor-grab active:cursor-grabbing touch-none"
         viewBox={`0 0 ${layout.width} ${layout.height}`}
       >
         <defs>
