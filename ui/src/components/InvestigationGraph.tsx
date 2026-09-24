@@ -9,8 +9,14 @@ import {
   User,
   Smartphone,
   AlertTriangle,
-  History,
-  FileCheck
+  Play,
+  Pause,
+  Filter,
+  Layers,
+  Sparkles,
+  GitBranch,
+  Radio,
+  Share2
 } from "lucide-react";
 
 export interface GraphNode {
@@ -41,6 +47,8 @@ interface InvestigationGraphProps {
   className?: string;
 }
 
+type LayoutMode = "flow" | "radial" | "cluster";
+
 export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
   nodes: inputNodes,
   links: inputLinks,
@@ -56,13 +64,16 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(selectedNodeId || null);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("flow");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [isFlowAnimated, setIsFlowAnimated] = useState(true);
 
   const activeSelectedId = selectedNodeId !== undefined ? selectedNodeId : internalSelectedId;
 
-  // Spatial layout
+  // Compute positions based on dynamic layoutMode
   const layout = useMemo(() => {
-    const width = 900;
-    const height = 460;
+    const width = 940;
+    const height = 480;
     const cx = width / 2;
     const cy = height / 2;
 
@@ -70,38 +81,86 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
       let x = cx;
       let y = cy;
 
-      switch (n.type) {
-        case "transaction":
+      if (layoutMode === "flow") {
+        // Sequential Lineage Flow (Left-to-Right)
+        switch (n.type) {
+          case "customer":
+            x = cx - 320;
+            y = cy + 20;
+            break;
+          case "card":
+            x = cx - 140;
+            y = cy - 60;
+            break;
+          case "transaction":
+            x = cx + 50;
+            y = cy - 20;
+            break;
+          case "device":
+            x = cx + 240;
+            y = cy - 80;
+            break;
+          case "ring_card":
+            x = cx + 270;
+            y = cy + 70;
+            break;
+          case "prior_case":
+            x = cx - 120;
+            y = cy + 120;
+            break;
+          case "location":
+            x = cx + 180;
+            y = cy + 125;
+            break;
+          default:
+            x = cx + (Math.random() - 0.5) * 200;
+            y = cy + (Math.random() - 0.5) * 150;
+        }
+      } else if (layoutMode === "radial") {
+        // Radial Nexus (Orbiting the central transaction)
+        if (n.type === "transaction") {
           x = cx;
-          y = cy - 15;
-          break;
-        case "card":
-          x = cx - 250;
-          y = cy - 85;
-          break;
-        case "customer":
-          x = cx - 270;
-          y = cy + 75;
-          break;
-        case "device":
-          x = cx + 250;
-          y = cy - 85;
-          break;
-        case "ring_card":
-          x = cx + 260;
-          y = cy + 75;
-          break;
-        case "prior_case":
-          x = cx;
-          y = cy + 135;
-          break;
-        case "location":
-          x = cx + 180;
-          y = cy + 130;
-          break;
-        default:
-          x = cx + (Math.random() - 0.5) * 220;
-          y = cy + (Math.random() - 0.5) * 160;
+          y = cy;
+        } else {
+          const satellites = inputNodes.filter((i) => i.type !== "transaction");
+          const index = satellites.findIndex((s) => s.id === n.id);
+          const total = Math.max(satellites.length, 1);
+          const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+          const radius = 190;
+          x = cx + Math.cos(angle) * radius;
+          y = cy + Math.sin(angle) * (radius * 0.85);
+        }
+      } else {
+        // Topology Cluster
+        switch (n.type) {
+          case "transaction":
+            x = cx - 40;
+            y = cy - 40;
+            break;
+          case "customer":
+            x = cx - 240;
+            y = cy + 40;
+            break;
+          case "card":
+            x = cx - 120;
+            y = cy - 130;
+            break;
+          case "device":
+            x = cx + 160;
+            y = cy - 90;
+            break;
+          case "ring_card":
+            x = cx + 220;
+            y = cy + 60;
+            break;
+          case "prior_case":
+            x = cx + 20;
+            y = cy + 140;
+            break;
+          default:
+            x = cx + (Math.random() - 0.5) * 200;
+            y = cy + (Math.random() - 0.5) * 150;
+        }
       }
 
       return { ...n, x, y };
@@ -116,13 +175,13 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
     }));
 
     return { nodes: positioned, links: computedLinks, width, height };
-  }, [inputNodes, inputLinks]);
+  }, [inputNodes, inputLinks, layoutMode]);
 
   const selectedNode = useMemo(() => {
     return layout.nodes.find((n) => n.id === activeSelectedId) || null;
   }, [layout.nodes, activeSelectedId]);
 
-  // Pan controls
+  // Pan interactions
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     setIsDragging(true);
@@ -159,6 +218,11 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
     return false;
   };
 
+  const isNodeVisible = (node: GraphNode) => {
+    if (filterType === "all") return true;
+    return node.type === filterType;
+  };
+
   const isDimmed = (nodeId: string) => {
     const focusId = hoveredNodeId || activeSelectedId;
     if (highlightedNodeIds.length > 0) {
@@ -181,49 +245,42 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
       case "transaction":
         return {
           accent: node.status === "flagged" ? "#e11d48" : "#2563eb",
-          bg: "#ffffff",
           badgeBg: node.status === "flagged" ? "#ffe4e6" : "#dbeafe",
           badgeText: node.status === "flagged" ? "#be123c" : "#1e40af",
         };
       case "customer":
         return {
           accent: "#0284c7",
-          bg: "#ffffff",
           badgeBg: "#e0f2fe",
           badgeText: "#0369a1",
         };
       case "card":
         return {
           accent: node.status === "compromised" ? "#e11d48" : "#0d9488",
-          bg: "#ffffff",
           badgeBg: node.status === "compromised" ? "#ffe4e6" : "#ccfbf1",
           badgeText: node.status === "compromised" ? "#be123c" : "#0f766e",
         };
       case "device":
         return {
           accent: "#7c3aed",
-          bg: "#ffffff",
           badgeBg: "#ede9fe",
           badgeText: "#6d28d9",
         };
       case "ring_card":
         return {
           accent: "#d97706",
-          bg: "#ffffff",
           badgeBg: "#fef3c7",
           badgeText: "#b45309",
         };
       case "prior_case":
         return {
           accent: "#ca8a04",
-          bg: "#ffffff",
           badgeBg: "#fef9c3",
           badgeText: "#a16207",
         };
       default:
         return {
           accent: "#64748b",
-          bg: "#ffffff",
           badgeBg: "#f1f5f9",
           badgeText: "#475569",
         };
@@ -233,87 +290,139 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full rounded-xl bg-white border border-slate-200/90 shadow-sm overflow-hidden select-none ${className}`}
+      className={`relative w-full rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-sm overflow-hidden select-none transition-all ${className}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* Light subtle grid pattern */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40">
-        <defs>
-          <pattern id="light-grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1" fill="#cbd5e1" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#light-grid)" />
-      </svg>
+      {/* ── Top Modular Toolbar ─────────────────────────────────────── */}
+      <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-2">
+        {/* Canvas Zoom & Center controls */}
+        <div className="flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-1 shadow-sm">
+          <button
+            onClick={() => handleZoom(0.15)}
+            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => handleZoom(-0.15)}
+            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <div className="w-px h-3.5 bg-slate-200 mx-0.5" />
+          <button
+            onClick={handleCenter}
+            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            title="Recenter Canvas"
+          >
+            <Crosshair className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={handleReset}
+            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg transition-colors"
+            title="Reset View"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-      {/* Floating Canvas Toolbar */}
-      <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200 rounded-lg p-1 shadow-sm">
+        {/* Dynamic Layout Mode Selector */}
+        <div className="flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-1 shadow-sm font-mono text-[11px]">
+          <button
+            onClick={() => setLayoutMode("flow")}
+            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 font-medium ${
+              layoutMode === "flow"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <GitBranch className="w-3 h-3" />
+            <span>Lineage Flow</span>
+          </button>
+          <button
+            onClick={() => setLayoutMode("radial")}
+            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 font-medium ${
+              layoutMode === "radial"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <Radio className="w-3 h-3" />
+            <span>Radial Nexus</span>
+          </button>
+          <button
+            onClick={() => setLayoutMode("cluster")}
+            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 font-medium ${
+              layoutMode === "cluster"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            <Share2 className="w-3 h-3" />
+            <span>Cluster Map</span>
+          </button>
+        </div>
+
+        {/* Flow Animation Toggle */}
         <button
-          onClick={() => handleZoom(0.15)}
-          className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-colors"
-          title="Zoom in"
+          onClick={() => setIsFlowAnimated(!isFlowAnimated)}
+          className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-mono flex items-center gap-1.5 shadow-sm transition-all ${
+            isFlowAnimated
+              ? "bg-blue-50 border-blue-200 text-blue-700 font-semibold"
+              : "bg-white border-slate-200 text-slate-500"
+          }`}
+          title="Toggle live telemetry pulse animation"
         >
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={() => handleZoom(-0.15)}
-          className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-colors"
-          title="Zoom out"
-        >
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-        <div className="w-px h-3.5 bg-slate-200 mx-0.5" />
-        <button
-          onClick={handleCenter}
-          className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-colors"
-          title="Center on flagged transaction"
-        >
-          <Crosshair className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={handleReset}
-          className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded transition-colors"
-          title="Reset zoom & pan"
-        >
-          <Maximize2 className="w-3.5 h-3.5" />
+          <Sparkles className="w-3 h-3" />
+          <span>{isFlowAnimated ? "Flow Pulses: ON" : "Flow Pulses: OFF"}</span>
         </button>
       </div>
 
-      {/* Elegant Light Legend */}
-      <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-3 bg-white/90 backdrop-blur border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-600 shadow-sm">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-          Flagged Txn
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-          Customer / Card
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-          Ring Syndicate
-        </span>
+      {/* ── Top-Right Entity Filters ─────────────────────────────────── */}
+      <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-1 bg-white/95 backdrop-blur border border-slate-200/90 rounded-xl p-1 shadow-sm font-mono text-[10px]">
+        {["all", "transaction", "card", "device", "ring_card"].map((t) => (
+          <button
+            key={t}
+            onClick={() => setFilterType(t)}
+            className={`px-2 py-0.5 rounded-lg capitalize transition-colors ${
+              filterType === t
+                ? "bg-slate-100 font-bold text-slate-900"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            {t === "all" ? "All Entities" : t.replace(/_/g, " ")}
+          </button>
+        ))}
       </div>
 
-      {/* Main SVG Graphic */}
+      {/* ── Main SVG Canvas ─────────────────────────────────────────── */}
       <svg
-        className="w-full h-80 sm:h-96 cursor-grab active:cursor-grabbing"
+        className="w-full h-84 sm:h-96 cursor-grab active:cursor-grabbing"
         viewBox={`0 0 ${layout.width} ${layout.height}`}
       >
         <defs>
-          <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
-            <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.06" floodColor="#0f172a" />
+          <pattern id="light-dots-canvas" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.2" fill="#cbd5e1" />
+          </pattern>
+
+          <filter id="float-shadow" x="-15%" y="-15%" width="130%" height="135%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" floodOpacity="0.07" floodColor="#0f172a" />
           </filter>
-          <filter id="card-shadow-active" x="-15%" y="-15%" width="130%" height="140%">
-            <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.12" floodColor="#0f172a" />
+          <filter id="float-shadow-active" x="-20%" y="-20%" width="140%" height="145%">
+            <feDropShadow dx="0" dy="6" stdDeviation="8" floodOpacity="0.16" floodColor="#2563eb" />
           </filter>
         </defs>
 
+        {/* Ambient Grid */}
+        <rect width="100%" height="100%" fill="url(#light-dots-canvas)" opacity="0.35" />
+
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Curved connecting edges */}
+          {/* Animated Connecting Edge Lines */}
           {layout.links.map((link) => {
             if (!link.sourceNode || !link.targetNode) return null;
             const x1 = link.sourceNode.x || 0;
@@ -344,6 +453,7 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
 
             return (
               <g key={link.id} opacity={dimmed ? 0.15 : isFocus ? 1 : 0.65}>
+                {/* Background base path */}
                 <path
                   d={pathD}
                   fill="none"
@@ -354,19 +464,31 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
                       ? "#f59e0b"
                       : "#cbd5e1"
                   }
-                  strokeWidth={isFocus ? 2.2 : 1.5}
+                  strokeWidth={isFocus ? 2.5 : 1.5}
                   strokeDasharray={link.type === "CONNECTED_RING" ? "4 3" : "none"}
                 />
 
-                {/* Quiet link label pill */}
+                {/* Animated data flow pulse line */}
+                {isFlowAnimated && (isFocus || link.is_primary) && (
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke={link.type === "CONNECTED_RING" ? "#d97706" : "#3b82f6"}
+                    strokeWidth={isFocus ? 2.8 : 2}
+                    className="animate-edge-flow"
+                    opacity="0.85"
+                  />
+                )}
+
+                {/* Quiet Floating Label Pill */}
                 {isFocus && (
                   <g transform={`translate(${midX}, ${midY})`}>
                     <rect
-                      x="-32"
-                      y="-8"
-                      width="64"
-                      height="16"
-                      rx="8"
+                      x="-34"
+                      y="-9"
+                      width="68"
+                      height="18"
+                      rx="9"
                       fill="#ffffff"
                       stroke="#e2e8f0"
                       strokeWidth="1"
@@ -387,7 +509,7 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
             );
           })}
 
-          {/* Node Cards */}
+          {/* Interactive Node Cards */}
           {layout.nodes.map((node) => {
             const x = node.x || 0;
             const y = node.y || 0;
@@ -398,16 +520,18 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
             const isTxn = node.type === "transaction";
             const theme = getNodeTheme(node);
 
-            const cardWidth = isTxn ? 164 : 144;
-            const cardHeight = isTxn ? 56 : 48;
+            const cardWidth = isTxn ? 168 : 148;
+            const cardHeight = isTxn ? 58 : 50;
+
+            if (!isNodeVisible(node)) return null;
 
             return (
               <g
                 key={node.id}
                 transform={`translate(${x - cardWidth / 2}, ${y - cardHeight / 2})`}
-                className="cursor-pointer"
-                opacity={dimmed ? 0.2 : 1}
-                filter={isSelected || isHigh ? "url(#card-shadow-active)" : "url(#card-shadow)"}
+                className="cursor-pointer transition-all duration-300"
+                opacity={dimmed ? 0.25 : 1}
+                filter={isSelected || isHigh ? "url(#float-shadow-active)" : "url(#float-shadow)"}
                 onMouseEnter={() => setHoveredNodeId(node.id)}
                 onMouseLeave={() => setHoveredNodeId(null)}
                 onClick={(e) => {
@@ -416,11 +540,26 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
                   if (onNodeSelect) onNodeSelect(node);
                 }}
               >
-                {/* Main card background */}
+                {/* Radar ripple wave for flagged/highlighted nodes */}
+                {(isHigh || (isTxn && node.status === "flagged")) && (
+                  <rect
+                    x="-6"
+                    y="-6"
+                    width={cardWidth + 12}
+                    height={cardHeight + 12}
+                    rx="14"
+                    fill="none"
+                    stroke={isTxn ? "#f43f5e" : "#3b82f6"}
+                    strokeWidth="1.5"
+                    className="animate-radar pointer-events-none"
+                  />
+                )}
+
+                {/* Main Card Shape */}
                 <rect
                   width={cardWidth}
                   height={cardHeight}
-                  rx="8"
+                  rx="10"
                   fill="#ffffff"
                   stroke={
                     isSelected
@@ -435,20 +574,20 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
                   className="transition-colors duration-150"
                 />
 
-                {/* Left accent color indicator bar */}
+                {/* Left accent bar */}
                 <rect
                   x="0"
                   y="0"
-                  width="4.5"
+                  width="5"
                   height={cardHeight}
-                  rx="2"
+                  rx="2.5"
                   fill={theme.accent}
                 />
 
                 {/* Node Title */}
                 <text
-                  x="14"
-                  y={isTxn ? 23 : 20}
+                  x="15"
+                  y={isTxn ? 24 : 21}
                   fill="#0f172a"
                   fontSize={isTxn ? "12" : "11"}
                   fontWeight="600"
@@ -457,18 +596,18 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
                   {node.label}
                 </text>
 
-                {/* Secondary Pill Subtitle */}
+                {/* Node Subtitle Pill */}
                 <rect
-                  x="14"
-                  y={isTxn ? 32 : 28}
-                  width={isTxn && node.details?.amount_usd ? "90" : "72"}
-                  height="14"
-                  rx="4"
+                  x="15"
+                  y={isTxn ? 34 : 29}
+                  width={isTxn && node.details?.amount_usd ? "92" : "74"}
+                  height="15"
+                  rx="4.5"
                   fill={theme.badgeBg}
                 />
                 <text
-                  x="18"
-                  y={isTxn ? 42.5 : 38.5}
+                  x="20"
+                  y={isTxn ? 45 : 40}
                   fill={theme.badgeText}
                   fontSize="8.5"
                   fontWeight="600"
@@ -485,33 +624,42 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
         </g>
       </svg>
 
-      {/* Selected Node Details Drawer */}
+      {/* ── Modular Node Inspector Drawer ────────────────────────────── */}
       {selectedNode && (
-        <div className="absolute bottom-3 right-3 z-20 w-80 bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-3.5 text-xs shadow-xl space-y-2.5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <span className="font-semibold text-slate-900 font-mono text-xs">
-              {selectedNode.label}
-            </span>
+        <div className="absolute bottom-3 right-3 z-20 w-80 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-4 text-xs shadow-xl space-y-3 font-mono animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+              <span className="font-bold text-slate-900 text-xs">
+                {selectedNode.label}
+              </span>
+            </div>
             <button
               onClick={() => {
                 setInternalSelectedId(null);
                 if (onNodeSelect) onNodeSelect(null);
               }}
-              className="text-slate-400 hover:text-slate-700"
+              className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="space-y-1.5 text-slate-600 font-mono text-[11px]">
+          <div className="space-y-1.5 text-slate-600 text-[11px]">
             <div className="flex justify-between">
               <span className="text-slate-400">Entity ID:</span>
-              <span className="text-slate-900 font-medium">{selectedNode.id}</span>
+              <span className="text-slate-900 font-semibold">{selectedNode.id}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Category:</span>
-              <span className="text-slate-900 uppercase font-medium">{selectedNode.type}</span>
+              <span className="text-slate-400">Topology Type:</span>
+              <span className="text-slate-900 uppercase font-semibold">{selectedNode.type}</span>
             </div>
+            {selectedNode.status && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Status:</span>
+                <span className="text-emerald-700 font-bold uppercase">{selectedNode.status}</span>
+              </div>
+            )}
             {selectedNode.details &&
               Object.entries(selectedNode.details).map(([k, v]) => (
                 <div key={k} className="flex justify-between pt-1 border-t border-slate-100">
@@ -521,6 +669,18 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
                   </span>
                 </div>
               ))}
+          </div>
+
+          <div className="pt-1 text-[10px] text-slate-400 border-t border-slate-100 flex items-center justify-between">
+            <span>Graph Connected Neighbors</span>
+            <span className="font-bold text-blue-600">
+              {
+                layout.links.filter(
+                  (l) => l.source === selectedNode.id || l.target === selectedNode.id
+                ).length
+              }{" "}
+              edges
+            </span>
           </div>
         </div>
       )}
