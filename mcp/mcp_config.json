@@ -1,0 +1,219 @@
+{
+  "mcpVersion": "0.1.0",
+  "server": {
+    "name": "tigergraph-fraud-mcp",
+    "description": "TigerGraph MCP server exposing FraudGraph GSQL queries as LLM-callable tools",
+    "version": "1.0.0",
+    "transport": "http",
+    "url": "${TIGERGRAPH_MCP_URL}",
+    "auth": {
+      "type": "bearer",
+      "tokenEnvVar": "TIGERGRAPH_MCP_TOKEN"
+    }
+  },
+  "tigergraph": {
+    "host": "${TIGERGRAPH_HOST}",
+    "username": "${TIGERGRAPH_USERNAME}",
+    "password": "${TIGERGRAPH_PASSWORD}",
+    "graphName": "${TIGERGRAPH_GRAPH_NAME}",
+    "tlsVerify": true,
+    "timeoutSeconds": 30,
+    "retries": 3
+  },
+  "tools": [
+    {
+      "name": "entity_transaction_history",
+      "description": "Retrieves the full transaction history for a customer, card, or device. Returns transactions ordered by timestamp with merchant details, category breakdowns, and status aggregates. Use this first when investigating any fraud alert.",
+      "query": "entity_transaction_history",
+      "parameters": {
+        "entity_type": {
+          "type": "string",
+          "enum": ["customer", "card", "device"],
+          "description": "The type of entity to query history for"
+        },
+        "entity_id": {
+          "type": "string",
+          "description": "The unique ID of the entity"
+        },
+        "limit_n": {
+          "type": "integer",
+          "default": 100,
+          "description": "Maximum number of transactions to return"
+        },
+        "start_date": {
+          "type": "string",
+          "default": "",
+          "description": "ISO-8601 start date filter (inclusive). Empty string = no filter."
+        },
+        "end_date": {
+          "type": "string",
+          "default": "",
+          "description": "ISO-8601 end date filter (inclusive). Empty string = no filter."
+        }
+      },
+      "required": ["entity_type", "entity_id"]
+    },
+    {
+      "name": "k_hop_expansion",
+      "description": "Expands the graph up to K hops from a seed entity (customer, transaction, or fraud case). Returns all reachable vertices and a type-count summary. Use to discover unknown relationships around a suspicious entity.",
+      "query": "k_hop_expansion",
+      "parameters": {
+        "seed_type": {
+          "type": "string",
+          "enum": ["customer", "transaction", "case"],
+          "description": "Entity type of the expansion seed"
+        },
+        "seed_id": {
+          "type": "string",
+          "description": "ID of the seed entity"
+        },
+        "max_hops": {
+          "type": "integer",
+          "default": 2,
+          "description": "Maximum hops to expand (1-4 recommended)"
+        },
+        "include_transactions": { "type": "boolean", "default": true },
+        "include_devices":      { "type": "boolean", "default": true },
+        "include_cards":        { "type": "boolean", "default": true },
+        "include_connections":  { "type": "boolean", "default": true },
+        "include_merchants":    { "type": "boolean", "default": true }
+      },
+      "required": ["seed_type", "seed_id"]
+    },
+    {
+      "name": "shared_attribute_ring_detection",
+      "description": "Detects fraud rings by finding clusters of customers connected via shared devices, cards, or IP addresses. Returns connected components with size >= min_ring_size. A component of 3+ customers sharing devices/cards is a strong ring signal.",
+      "query": "shared_attribute_ring_detection",
+      "parameters": {
+        "min_ring_size": {
+          "type": "integer",
+          "default": 3,
+          "description": "Minimum customers in a component to be reported as a ring"
+        },
+        "max_ring_size": {
+          "type": "integer",
+          "default": 50,
+          "description": "Upper bound to exclude giant components"
+        },
+        "include_shared_device": { "type": "boolean", "default": true },
+        "include_shared_card":   { "type": "boolean", "default": true },
+        "include_shared_ip":     { "type": "boolean", "default": true },
+        "min_shared_count": {
+          "type": "number",
+          "default": 2,
+          "description": "Minimum number of sharing events to count as a link"
+        }
+      },
+      "required": []
+    },
+    {
+      "name": "velocity_burst_detection",
+      "description": "Detects rapid transaction bursts for a customer or card within a configurable time window. Returns burst flags (velocity, amount, decline, multi-merchant) and per-merchant breakdown. High burst + high decline rate = strong fraud signal.",
+      "query": "velocity_burst_detection",
+      "parameters": {
+        "entity_type": {
+          "type": "string",
+          "enum": ["customer", "card"],
+          "default": "customer"
+        },
+        "entity_id": { "type": "string", "description": "Customer or card ID" },
+        "window_seconds": {
+          "type": "integer",
+          "default": 3600,
+          "description": "Look-back window in seconds"
+        },
+        "burst_count_threshold": {
+          "type": "integer",
+          "default": 5,
+          "description": "Minimum transaction count to flag as velocity burst"
+        },
+        "burst_amount_threshold": {
+          "type": "number",
+          "default": 0,
+          "description": "Minimum cumulative amount. 0 = disabled."
+        }
+      },
+      "required": ["entity_id"]
+    },
+    {
+      "name": "connected_components",
+      "description": "Computes weakly-connected components across the full customer sharing graph using label propagation. Returns all components >= min_comp_size with risk statistics. Use for global ring discovery (not case-specific).",
+      "query": "connected_components",
+      "parameters": {
+        "max_iter": {
+          "type": "integer",
+          "default": 50,
+          "description": "Max label propagation iterations"
+        },
+        "min_comp_size": {
+          "type": "integer",
+          "default": 2,
+          "description": "Minimum component size to include in results"
+        }
+      },
+      "required": []
+    },
+    {
+      "name": "prior_case_similarity",
+      "description": "Retrieves the top-K most similar resolved FraudCases using pre-computed CASE_SIMILAR_TO edges. Returns similar case outcomes and a memory-adjusted fraud prior probability. Use this early in every investigation to leverage historical memory.",
+      "query": "prior_case_similarity",
+      "parameters": {
+        "new_case_id": {
+          "type": "string",
+          "description": "ID of the new case being investigated"
+        },
+        "top_k": {
+          "type": "integer",
+          "default": 5,
+          "description": "Number of similar cases to retrieve"
+        },
+        "min_similarity": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Minimum cosine similarity threshold (0–1)"
+        }
+      },
+      "required": ["new_case_id"]
+    },
+    {
+      "name": "case_subgraph_extraction",
+      "description": "Extracts the complete investigative subgraph for a FraudCase: transactions, customers, cards, devices, merchants, evidence nodes, policies cited, patterns matched, actions taken, and top similar prior cases. Returns a self-contained context packet. Call this to assemble the full picture before making a decision.",
+      "query": "case_subgraph_extraction",
+      "parameters": {
+        "case_id": {
+          "type": "string",
+          "description": "ID of the FraudCase to extract"
+        },
+        "include_evidence": { "type": "boolean", "default": true },
+        "include_actions":  { "type": "boolean", "default": true },
+        "include_similar":  { "type": "boolean", "default": true },
+        "similar_limit": {
+          "type": "integer",
+          "default": 3,
+          "description": "Max prior similar cases to include"
+        }
+      },
+      "required": ["case_id"]
+    }
+  ],
+  "resourceTemplates": [
+    {
+      "uriTemplate": "tigergraph://FraudGraph/Customer/{customer_id}",
+      "name": "Customer vertex",
+      "description": "Read a Customer vertex by ID",
+      "mimeType": "application/json"
+    },
+    {
+      "uriTemplate": "tigergraph://FraudGraph/FraudCase/{case_id}",
+      "name": "FraudCase vertex",
+      "description": "Read a FraudCase vertex by ID",
+      "mimeType": "application/json"
+    },
+    {
+      "uriTemplate": "tigergraph://FraudGraph/Transaction/{transaction_id}",
+      "name": "Transaction vertex",
+      "description": "Read a Transaction vertex by ID",
+      "mimeType": "application/json"
+    }
+  ]
+}

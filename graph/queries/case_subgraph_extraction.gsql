@@ -1,0 +1,81 @@
+// =============================================================================
+// case_subgraph_extraction.gsql
+// Extracts the complete evidence subgraph for a FraudCase.
+// Returns: FraudCase vertex, all CASE_INVOLVES transactions, CASE_ABOUT
+// customers, CASE_ON_CARD cards, CASE_SIMILAR_TO prior cases,
+// Evidence items, and devices used in involved transactions.
+// Used for: building the evidence packet for GraphRAG.
+// =============================================================================
+
+USE GRAPH FraudGraph
+
+CREATE OR REPLACE QUERY case_subgraph_extraction (
+    STRING case_id
+) FOR GRAPH FraudGraph SYNTAX V2 {
+
+    // ── Global vertex set accumulators ────────────────────────────────────────
+    SetAccum<VERTEX<Transaction>>   @@transactions;
+    SetAccum<VERTEX<Customer>>      @@customers;
+    SetAccum<VERTEX<Card>>          @@cards;
+    SetAccum<VERTEX<DeviceProfile>> @@devices;
+    SetAccum<VERTEX<Evidence>>      @@evidence;
+    SetAccum<VERTEX<FraudCase>>     @@similar_cases;
+
+    SumAccum<DOUBLE> @@total_exposure;
+    SumAccum<INT>    @@txn_count;
+    MaxAccum<FLOAT>  @@max_risk_score;
+
+    // ── Step 1: Seed the target FraudCase ────────────────────────────────────
+    all_cases   = {FraudCase.*};
+    target_case = SELECT fc FROM all_cases:fc WHERE fc.case_id == case_id;
+
+    // ── Step 2: CASE_INVOLVES -> Transactions ─────────────────────────────────
+    txns = SELECT t
+           FROM target_case:fc -(CASE_INVOLVES:e)-> Transaction:t
+           ACCUM
+               @@transactions   += t,
+               @@total_exposure += t.amount,
+               @@txn_count      += 1,
+               @@max_risk_score  = t.risk_score;
+
+    // ── Step 3: CASE_ABOUT -> Customers ──────────────────────────────────────
+    custs = SELECT c
+            FROM target_case:fc -(CASE_ABOUT:e)-> Customer:c
+            ACCUM @@customers += c;
+
+    // ── Step 4: CASE_ON_CARD -> Cards ─────────────────────────────────────────
+    cards = SELECT cd
+            FROM target_case:fc -(CASE_ON_CARD:e)-> Card:cd
+            ACCUM @@cards += cd;
+
+    // ── Step 5: Evidence items ────────────────────────────────────────────────
+    evid = SELECT ev
+           FROM target_case:fc -(CASE_EVIDENCE:e)-> Evidence:ev
+           ACCUM @@evidence += ev;
+
+    // ── Step 6: Similar prior cases ───────────────────────────────────────────
+    sim = SELECT prior
+          FROM target_case:fc -(CASE_SIMILAR_TO:e)-> FraudCase:prior
+          ORDER BY e.similarity_score DESC
+          LIMIT 5
+          ACCUM @@similar_cases += prior;
+
+    // ── Step 7: Devices used in transactions ──────────────────────────────────
+    devs = SELECT dp
+           FROM txns:t -(TRANSACTION_ON_DEVICE_PROFILE:e)-> DeviceProfile:dp
+           ACCUM @@devices += dp;
+
+    // ── Output ────────────────────────────────────────────────────────────────
+    PRINT target_case      AS fraud_case;
+    PRINT @@transactions   AS transactions;
+    PRINT @@customers      AS customers;
+    PRINT @@cards          AS cards;
+    PRINT @@devices        AS devices;
+    PRINT @@evidence       AS evidence;
+    PRINT @@similar_cases  AS similar_cases;
+    PRINT @@txn_count      AS transaction_count;
+    PRINT @@total_exposure AS total_exposure_usd;
+    PRINT @@max_risk_score AS max_transaction_risk_score;
+}
+
+INSTALL QUERY case_subgraph_extraction

@@ -1,0 +1,115 @@
+// =============================================================================
+// prior_case_similarity.gsql
+// Retrieves closed cases most similar to the current investigation.
+// Similarity signals:
+//   Same customer or connected customer: +0.4
+//   Same device profile:                +0.3
+//   Same billing region:                +0.2
+//   Same card network/type:             +0.1
+// Returns top 5 similar closed cases.
+// Used for: memory retrieval, confidence calibration, citing prior cases.
+// =============================================================================
+
+USE GRAPH FraudGraph
+
+CREATE OR REPLACE QUERY prior_case_similarity (
+    STRING customer_id       = "",
+    STRING card_id           = "",
+    STRING device_profile_id = "",
+    STRING billing_region    = "",
+    FLOAT  min_similarity    = 0.3
+) FOR GRAPH FraudGraph SYNTAX V2 {
+
+    // ── Per-case accumulators ─────────────────────────────────────────────────
+    SumAccum<FLOAT>  @sim_score;
+    SetAccum<STRING> @matched_signals;
+
+    // ── Global accumulators ───────────────────────────────────────────────────
+    TYPEDEF TUPLE <
+        STRING case_id,
+        FLOAT  similarity_score,
+        STRING outcome,
+        STRING pattern,
+        DOUBLE exposure_usd,
+        STRING verdict,
+        STRING status
+    > SimilarCase;
+
+    HeapAccum<SimilarCase>(5, similarity_score DESC) @@top_cases;
+    SumAccum<INT> @@fraud_count;
+    SumAccum<INT> @@clear_count;
+
+    all_cases = {FraudCase.*};
+
+    // ── Signal 1: Same customer (+0.4) ───────────────────────────────────────
+    IF customer_id != "" THEN
+        sig1 = SELECT fc
+               FROM all_cases:fc -(CASE_ABOUT:e)-> Customer:c
+               WHERE c.customer_id == customer_id
+               ACCUM
+                   fc.@sim_score      += 0.4,
+                   fc.@matched_signals += "same_customer";
+    END;
+
+    // ── Signal 2: Same device profile (+0.3) ─────────────────────────────────
+    IF device_profile_id != "" THEN
+        sig2 = SELECT fc
+               FROM all_cases:fc -(CASE_INVOLVES:e)-> Transaction:t
+                                 -(TRANSACTION_ON_DEVICE_PROFILE:e2)-> DeviceProfile:dp
+               WHERE dp.device_profile_id == device_profile_id
+               ACCUM
+                   fc.@sim_score      += 0.3,
+                   fc.@matched_signals += "same_device_profile";
+    END;
+
+    // ── Signal 3: Same billing region (+0.2) ─────────────────────────────────
+    IF billing_region != "" THEN
+        sig3 = SELECT fc
+               FROM all_cases:fc -(CASE_INVOLVES:e)-> Transaction:t
+               WHERE t.billing_region == billing_region
+               ACCUM
+                   fc.@sim_score      += 0.2,
+                   fc.@matched_signals += "same_billing_region";
+    END;
+
+    // ── Signal 4: Same card network/type (+0.1) ───────────────────────────────
+    IF card_id != "" THEN
+        card_seeds = {Card.*};
+        ref_card   = SELECT c FROM card_seeds:c WHERE c.card_id == card_id;
+
+        STRING ref_network = "";
+        STRING ref_type    = "";
+        tmp_card = SELECT c FROM ref_card:c
+                   POST-ACCUM ref_network = c.card_network, ref_type = c.card_type;
+
+        sig4 = SELECT fc
+               FROM all_cases:fc -(CASE_ON_CARD:e)-> Card:cd
+               WHERE cd.card_network == ref_network AND cd.card_type == ref_type
+               ACCUM
+                   fc.@sim_score      += 0.1,
+                   fc.@matched_signals += "same_card_type";
+    END;
+
+    // ── Collect top 5 closed cases meeting min_similarity ────────────────────
+    collect = SELECT fc FROM all_cases:fc
+              WHERE fc.@sim_score >= min_similarity
+                AND (fc.status == "closed" OR fc.status == "resolved")
+              POST-ACCUM
+                  @@top_cases += SimilarCase(
+                      fc.case_id,
+                      fc.@sim_score,
+                      fc.outcome,
+                      fc.pattern,
+                      fc.exposure_usd,
+                      fc.verdict,
+                      fc.status
+                  ),
+                  IF fc.verdict == "fraud" THEN @@fraud_count += 1
+                  ELSE @@clear_count += 1 END;
+
+    PRINT @@top_cases    AS similar_cases;
+    PRINT @@fraud_count  AS prior_fraud_count;
+    PRINT @@clear_count  AS prior_clear_count;
+}
+
+INSTALL QUERY prior_case_similarity

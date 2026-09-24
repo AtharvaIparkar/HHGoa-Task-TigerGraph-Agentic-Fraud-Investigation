@@ -1,0 +1,546 @@
+// =============================================================================
+// schema.gsql  —  FraudGraph Schema DDL
+// TigerGraph Savanna  |  GSQL v3
+//
+// Usage:
+//   gsql schema.gsql
+//   OR upload via Cloud Portal → Graph Studio → Design Schema
+//
+// Changes from v1:
+//   + DeviceProfile vertex  (represents identity.csv device fingerprints)
+//   + BillingRegion vertex  (represents addr1/addr2 from transactions.csv)
+//   + Extended Transaction vertex  (product_cd, billing fields, Vesta features)
+//   + Extended FraudCase vertex    (verdict, pattern, exposure, outcome, etc.)
+//   + TRANSACTION_ON_DEVICE_PROFILE edge  (replaces generic TRANSACTION_ON_DEVICE)
+//   + TRANSACTION_IN_REGION edge
+//   + SHARED_DEVICE_PROFILE edge   (key fraud-ring detection edge)
+//   + CASE_ON_CARD edge
+//   + NEXT_TRANSACTION edge        (sequence analysis within a card)
+// =============================================================================
+
+USE GLOBAL
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DROP (idempotent re-run — comment out on first run if graph doesn't exist yet)
+// ─────────────────────────────────────────────────────────────────────────────
+// DROP GRAPH FraudGraph
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VERTEX TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+CREATE VERTEX Customer (
+    PRIMARY_ID  customer_id         STRING,
+    full_name                       STRING,
+    email                           STRING,
+    phone                           STRING,
+    date_of_birth                   STRING,   // ISO-8601 date string
+    address_line1                   STRING,
+    address_line2                   STRING,
+    city                            STRING,
+    country                         STRING,
+    postal_code                     STRING,
+    kyc_status                      STRING,   // verified | pending | failed | suspended | unknown
+    kyc_verified_at                 STRING,
+    account_status                  STRING,   // active | frozen | closed | restricted
+    account_created_at              STRING,
+    risk_tier                       STRING,   // low | medium | high | critical | unknown
+    cumulative_risk_score           FLOAT,
+    is_flagged                      BOOL,
+    flag_reason                     STRING,
+    pep_status                      BOOL,     // politically exposed person
+    sanctions_hit                   BOOL,
+    total_transactions              INT,
+    total_transaction_value         DOUBLE,
+    last_activity_at                STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Card (
+    PRIMARY_ID  card_id             STRING,
+    card_number_masked              STRING,   // last 4 digits only
+    card_type                       STRING,   // credit | debit | prepaid | virtual
+    card_network                    STRING,   // visa | mastercard | amex | discover
+    issuing_bank                    STRING,
+    issuing_country                 STRING,
+    expiry_month                    INT,
+    expiry_year                     INT,
+    card_status                     STRING,   // active | blocked | expired | reported_stolen
+    issued_at                       STRING,
+    linked_customer_count           INT,      // how many customers registered this card
+    is_shared                       BOOL,
+    last_used_at                    STRING,
+    // Derived from transactions.csv card1-card6 and addr fields
+    card1_code                      STRING,   // card1 issuer code
+    billing_region                  STRING,   // addr1 value at card registration
+    billing_country                 STRING,   // addr2 value at card registration
+    customer_id                     STRING    // owning customer (denormalised for fast lookup)
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Device (
+    PRIMARY_ID  device_id           STRING,
+    device_fingerprint              STRING,
+    device_type                     STRING,   // mobile | desktop | tablet | atm | pos
+    os_name                         STRING,
+    os_version                      STRING,
+    browser                         STRING,
+    browser_version                 STRING,
+    user_agent                      STRING,
+    screen_resolution               STRING,
+    timezone                        STRING,
+    locale                          STRING,
+    is_rooted                       BOOL,
+    is_emulator                     BOOL,
+    first_seen_at                   STRING,
+    last_seen_at                    STRING,
+    linked_customer_count           INT,
+    is_shared                       BOOL
+) WITH primary_id_as_attribute="true"
+
+// DeviceProfile — derived from identity.csv (DeviceInfo + OS + browser + screen).
+// Separate from Device so we can deduplicate across transactions without needing
+// a device registration event.  Key fraud-ring signal: when multiple customers
+// share the same DeviceProfile the SHARED_DEVICE_PROFILE edge fires.
+CREATE VERTEX DeviceProfile (
+    PRIMARY_ID  device_profile_id   STRING,   // SHA-256[:32] of DeviceInfo|os|browser|screen
+    device_info                     STRING,   // raw DeviceInfo field (e.g. SAMSUNG SM-G892A …)
+    os                              STRING,   // id_30 — OS string
+    browser                         STRING,   // id_31 — browser string
+    screen                          STRING,   // id_33 — screen resolution
+    device_type                     STRING,   // mobile | desktop
+    proxy_type                      STRING,   // id_23: transparent | anonymous | hidden | ""
+    is_new_device_flag              STRING,   // id_15: New | Found
+    first_seen_at                   STRING,
+    last_seen_at                    STRING,
+    linked_transaction_count        INT,
+    linked_customer_count           INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Connection (
+    PRIMARY_ID  connection_id       STRING,
+    ip_address                      STRING,
+    ip_type                         STRING,   // ipv4 | ipv6
+    isp                             STRING,
+    asn                             STRING,
+    country                         STRING,
+    region                          STRING,
+    city                            STRING,
+    latitude                        DOUBLE,
+    longitude                       DOUBLE,
+    is_vpn                          BOOL,
+    is_tor                          BOOL,
+    is_proxy                        BOOL,
+    is_datacenter                   BOOL,
+    risk_score                      FLOAT,
+    first_seen_at                   STRING,
+    last_seen_at                    STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Merchant (
+    PRIMARY_ID  merchant_id         STRING,
+    merchant_name                   STRING,
+    merchant_category_code          STRING,
+    category_description            STRING,
+    street_address                  STRING,
+    city                            STRING,
+    country                         STRING,
+    postal_code                     STRING,
+    currency                        STRING,
+    is_online                       BOOL,
+    is_high_risk                    BOOL,
+    average_transaction_value       DOUBLE,
+    total_transaction_count         INT,
+    chargeback_rate                 FLOAT,    // 0.0–1.0
+    registered_at                   STRING,
+    last_transaction_at             STRING
+) WITH primary_id_as_attribute="true"
+
+// BillingRegion — derived from addr1 + addr2 in transactions.csv.
+// Shared billing region across multiple cards is a key out-of-region-use signal.
+CREATE VERTEX BillingRegion (
+    PRIMARY_ID  region_code         STRING,   // addr1 value (anonymised region code)
+    country_code                    STRING,   // addr2 value
+    is_home_country                 BOOL      // true when country_code == "87"
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Transaction (
+    PRIMARY_ID  transaction_id      STRING,
+    amount                          DOUBLE,
+    currency                        STRING,
+    timestamp                       STRING,   // ISO-8601 (ts column)
+    merchant_category               STRING,
+    merchant_category_code          STRING,
+    status                          STRING,   // pending | completed | declined | reversed | disputed | flagged
+    risk_score                      FLOAT,    // 0.0–1.0 from bank detection model
+    risk_flags                      STRING,   // JSON array of flag strings
+    auth_code                       STRING,
+    acquirer_reference              STRING,
+    channel                         STRING,   // in_person | online
+    is_international                BOOL,
+    is_card_present                 BOOL,
+    response_code                   STRING,
+    decline_reason                  STRING,
+    disputed                        BOOL,
+    dispute_reason                  STRING,
+    dispute_filed_at                STRING,
+    reversal_at                     STRING,
+    created_at                      STRING,
+    // ── Dataset-specific fields from transactions.csv ──────────────────────
+    product_cd                      STRING,   // ProductCD: W|C|H|R|S
+    billing_region                  STRING,   // addr1 (denormalised for fast filter)
+    billing_country                 STRING,   // addr2
+    p_email                         STRING,   // P_emaildomain — purchaser email domain
+    r_email                         STRING,   // R_emaildomain — recipient email domain
+    customer_id                     STRING,   // FK — owning customer
+    card_id                         STRING,   // FK — card used (customer_id + '-K1')
+    device_profile_id               STRING,   // FK — DeviceProfile (online only)
+    // ── Representative Vesta engineered features ──────────────────────────
+    // C-group: count features (e.g. addresses / phones associated with card)
+    c1                              FLOAT,
+    c2                              FLOAT,
+    c3                              FLOAT,
+    // D-group: time-delta features (e.g. days since previous transaction)
+    d1                              FLOAT,
+    d2                              FLOAT,
+    d3                              FLOAT,
+    // M-group: match flags (e.g. name-address match)
+    m1                              STRING,
+    m2                              STRING,
+    m3                              STRING,
+    // V-group: Vesta proprietary ranking/counting features
+    v1                              FLOAT,
+    v2                              FLOAT,
+    v3                              FLOAT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX FraudCase (
+    PRIMARY_ID  case_id             STRING,
+    title                           STRING,
+    description                     STRING,
+    created_at                      STRING,
+    updated_at                      STRING,
+    status                          STRING,   // open | investigating | resolved | escalated | closed
+    priority                        STRING,   // low | medium | high | critical
+    risk_score                      FLOAT,    // current risk score 0.0–1.0
+    confidence_score                FLOAT,    // evidence sufficiency 0.0–1.0
+    risk_history                    STRING,   // JSON: append-only [{timestamp, score, reason}]
+    decision                        STRING,   // pending | clear | suspicious | fraud | confirmed_fraud
+    decision_rationale              STRING,
+    decision_made_at                STRING,
+    sar_required                    BOOL,
+    sar_generated                   BOOL,
+    sar_filed_at                    STRING,
+    sar_reference_id                STRING,
+    assigned_analyst                STRING,
+    total_exposure                  DOUBLE,
+    recovered_amount                DOUBLE,
+    investigation_notes             STRING,
+    closed_at                       STRING,
+    tags                            STRING,   // JSON array of tags
+    // ── Extended fields from closed_cases_history.csv ─────────────────────
+    customer_id                     STRING,   // subject customer
+    card_id                         STRING,   // primary card involved
+    outcome                         STRING,   // confirmed_fraud | cleared
+    verdict                         STRING,   // fraud | legitimate | uncertain
+    fraud_probability               FLOAT,    // 0.0–1.0
+    pattern                         STRING,   // card_testing|card_not_present_fraud|card_not_present_new_device|out_of_region_use|account_takeover|undocumented|none
+    first_fraud_txn_id              STRING,
+    affected_txn_ids                STRING,   // JSON array of transaction IDs
+    connected_card_ids              STRING,   // JSON array of connected card IDs
+    exposure_usd                    DOUBLE,
+    actions_taken                   STRING,   // pipe-separated action list
+    report_filed                    STRING,
+    analyst_notes                   STRING,
+    stop_reason                     STRING,   // why the investigation ended
+    evidence_requests               STRING    // JSON array of evidence request objects
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Evidence (
+    PRIMARY_ID  evidence_id         STRING,
+    evidence_type                   STRING,   // transaction_pattern | device_sharing | ip_mismatch | velocity | ring | prior_case | behavioural
+    title                           STRING,
+    description                     STRING,
+    weight                          FLOAT,    // contribution to confidence 0.0–1.0
+    source_query                    STRING,   // which GSQL query produced this evidence
+    raw_data                        STRING,   // JSON string: raw query result
+    created_at                      STRING,
+    is_confirmed                    BOOL,
+    confirmed_by                    STRING,
+    confirmed_at                    STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Policy (
+    PRIMARY_ID  policy_id           STRING,
+    policy_code                     STRING,   // e.g. R1, R2 … R10
+    title                           STRING,
+    description                     STRING,
+    regulation_source               STRING,   // e.g. Internal Fraud Policy v1.0
+    severity                        STRING,   // advisory | warning | mandatory
+    action_required                 STRING,   // none | review | freeze | sar | escalate
+    effective_from                  STRING,
+    effective_to                    STRING,
+    version                         STRING,
+    is_active                       BOOL
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX FraudPattern (
+    PRIMARY_ID  pattern_id          STRING,   // e.g. card_testing
+    pattern_name                    STRING,
+    pattern_code                    STRING,   // e.g. FP-TEST-001
+    description                     STRING,
+    pattern_type                    STRING,   // ring | burst_velocity | account_takeover | synthetic_id | triangulation
+    detection_query                 STRING,   // GSQL query used to detect
+    feature_vector                  STRING,   // JSON array of feature weights
+    hit_count                       INT,      // how many times this pattern has matched
+    false_positive_rate             FLOAT,
+    last_triggered_at               STRING,
+    is_active                       BOOL,
+    created_at                      STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Action (
+    PRIMARY_ID  action_id           STRING,
+    action_type                     STRING,   // freeze_account | block_card | file_sar | …
+    status                          STRING,   // pending | approved | rejected | executed | failed | rolled_back
+    approval_event_id               STRING,   // required by action service
+    requested_by                    STRING,   // agent or analyst id
+    requested_at                    STRING,
+    approved_at                     STRING,
+    executed_at                     STRING,
+    target_entity_type              STRING,   // customer | transaction | case
+    target_entity_id                STRING,
+    payload                         STRING,   // JSON: action-specific parameters
+    result                          STRING,   // JSON: action service response
+    error_message                   STRING,
+    rollback_action_id              STRING    // points to compensating action if rolled back
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX Analyst (
+    PRIMARY_ID  analyst_id          STRING,
+    full_name                       STRING,
+    email                           STRING,
+    role                            STRING,   // junior_analyst | senior_analyst | manager | compliance_officer
+    team                            STRING,
+    is_active                       BOOL,
+    cases_assigned                  INT,
+    cases_resolved                  INT,
+    avg_resolution_time_hours       FLOAT,
+    created_at                      STRING,
+    last_login_at                   STRING
+) WITH primary_id_as_attribute="true"
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EDGE TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Customer → Card ───────────────────────────────────────────────────────────
+CREATE DIRECTED EDGE OWNS_CARD (
+    FROM Customer, TO Card,
+    registered_at   STRING,
+    is_primary      BOOL,
+    nickname        STRING
+)
+
+// ── Customer → Device ────────────────────────────────────────────────────────
+CREATE DIRECTED EDGE USES_DEVICE (
+    FROM Customer, TO Device,
+    first_seen_at   STRING,
+    last_seen_at    STRING,
+    is_primary      BOOL,
+    session_count   INT
+)
+
+// ── Customer → Transaction ────────────────────────────────────────────────────
+CREATE DIRECTED EDGE MADE_TRANSACTION (
+    FROM Customer, TO Transaction,
+    initiated_at    STRING,
+    channel         STRING
+)
+
+// ── Transaction → Merchant ────────────────────────────────────────────────────
+CREATE DIRECTED EDGE TRANSACTION_AT (
+    FROM Transaction, TO Merchant,
+    location_lat    DOUBLE,
+    location_lon    DOUBLE,
+    terminal_id     STRING
+)
+
+// ── Transaction → Card ────────────────────────────────────────────────────────
+CREATE DIRECTED EDGE TRANSACTION_WITH_CARD (
+    FROM Transaction, TO Card,
+    card_entry_mode STRING    // swipe | chip | tap | manual | tokenised
+)
+
+// ── Transaction → Device ─────────────────────────────────────────────────────
+// Legacy edge kept for generic Device vertices; prefer TRANSACTION_ON_DEVICE_PROFILE for this dataset
+CREATE DIRECTED EDGE TRANSACTION_ON_DEVICE (
+    FROM Transaction, TO Device,
+    session_id      STRING,
+    app_version     STRING
+)
+
+// ── Transaction → DeviceProfile ──────────────────────────────────────────────
+// Maps each online transaction to its deduplicated DeviceProfile (from identity.csv).
+// This edge enables multi-hop traversal: Transaction → DeviceProfile → [other Transactions] → Customer,
+// which is the primary mechanism for detecting shared-device fraud rings.
+CREATE DIRECTED EDGE TRANSACTION_ON_DEVICE_PROFILE (
+    FROM Transaction, TO DeviceProfile,
+    session_id      STRING,
+    app_version     STRING
+)
+
+// ── Transaction → BillingRegion ──────────────────────────────────────────────
+// Links each transaction to the billing region (addr1) where the card is registered.
+// Enables out-of-region pattern detection: same card, multiple distant regions in a time window.
+CREATE DIRECTED EDGE TRANSACTION_IN_REGION (
+    FROM Transaction, TO BillingRegion
+)
+
+// ── Transaction → Connection ─────────────────────────────────────────────────
+CREATE DIRECTED EDGE TRANSACTION_VIA_CONNECTION (
+    FROM Transaction, TO Connection,
+    request_time_ms INT
+)
+
+// ── Transaction → Transaction (same card, ordered by ts) ─────────────────────
+// Ordered sequence edge enables card-testing pattern detection:
+// traverse the chain to find small-auth → large-purchase sequences without full table scans.
+CREATE DIRECTED EDGE NEXT_TRANSACTION (
+    FROM Transaction, TO Transaction,
+    time_gap_seconds    INT,      // seconds between the two transactions
+    same_channel        BOOL,     // did channel change between transactions?
+    same_region         BOOL      // did billing region change?
+)
+
+// ── Customer ↔ Customer (shared DeviceProfile) ────────────────────────────────
+// Created when two distinct customers transact from the same DeviceProfile.
+// This is the primary fraud-ring edge for card-not-present and account-takeover patterns:
+// legitimate customers rarely share exact device fingerprints.
+CREATE UNDIRECTED EDGE SHARED_DEVICE_PROFILE (
+    FROM Customer, TO Customer,
+    device_profile_id   STRING,   // the shared DeviceProfile vertex ID
+    first_shared_at     STRING,
+    last_shared_at      STRING,
+    shared_txn_count    INT,      // number of transactions sharing this profile
+    is_confirmed        BOOL      // human-confirmed as suspicious
+)
+
+// ── Customer ↔ Customer (shared device) — generic ─────────────────────────────
+CREATE UNDIRECTED EDGE SHARED_DEVICE (
+    FROM Customer, TO Customer,
+    device_id       STRING,
+    first_shared_at STRING,
+    last_shared_at  STRING,
+    shared_count    INT,
+    is_confirmed    BOOL
+)
+
+// ── Customer ↔ Customer (shared card) ────────────────────────────────────────
+CREATE UNDIRECTED EDGE SHARED_CARD (
+    FROM Customer, TO Customer,
+    card_id         STRING,
+    first_shared_at STRING,
+    last_shared_at  STRING,
+    shared_count    INT,
+    is_confirmed    BOOL
+)
+
+// ── Device ↔ Device (shared IP via Connection) ────────────────────────────────
+CREATE UNDIRECTED EDGE SHARED_IP (
+    FROM Device, TO Device,
+    connection_id   STRING,
+    ip_address      STRING,
+    first_shared_at STRING,
+    last_shared_at  STRING,
+    shared_count    INT
+)
+
+// ── FraudCase → Transaction ───────────────────────────────────────────────────
+CREATE DIRECTED EDGE CASE_INVOLVES (
+    FROM FraudCase, TO Transaction,
+    relevance       STRING,   // primary | related | context
+    added_at        STRING,
+    added_by        STRING
+)
+
+// ── FraudCase → Customer ─────────────────────────────────────────────────────
+CREATE DIRECTED EDGE CASE_ABOUT (
+    FROM FraudCase, TO Customer,
+    role            STRING,   // subject | associate | victim | witness
+    added_at        STRING
+)
+
+// ── FraudCase → Card ──────────────────────────────────────────────────────────
+// Links a closed case to the specific card involved (from closed_cases_history.card_id).
+// Enables "how many fraud cases has this card appeared in?" queries.
+CREATE DIRECTED EDGE CASE_ON_CARD (
+    FROM FraudCase, TO Card
+)
+
+// ── FraudCase → Evidence ─────────────────────────────────────────────────────
+CREATE DIRECTED EDGE CASE_EVIDENCE (
+    FROM FraudCase, TO Evidence,
+    added_at        STRING,
+    added_by        STRING    // agent | analyst id
+)
+
+// ── FraudCase ↔ FraudCase — PRIOR CASE MEMORY EDGE ───────────────────────────
+CREATE UNDIRECTED EDGE CASE_SIMILAR_TO (
+    FROM FraudCase, TO FraudCase,
+    similarity_score    FLOAT,    // cosine similarity 0.0–1.0
+    similarity_basis    STRING,   // JSON: which features drove similarity
+    computed_at         STRING
+)
+
+// ── Evidence → Policy ────────────────────────────────────────────────────────
+CREATE DIRECTED EDGE POLICY_CITATION (
+    FROM Evidence, TO Policy,
+    citation_text   STRING,
+    cited_at        STRING
+)
+
+// ── Evidence → FraudPattern ──────────────────────────────────────────────────
+CREATE DIRECTED EDGE PATTERN_MATCH (
+    FROM Evidence, TO FraudPattern,
+    match_score     FLOAT,
+    match_details   STRING,   // JSON: which features matched
+    matched_at      STRING
+)
+
+// ── FraudCase → Action ───────────────────────────────────────────────────────
+CREATE DIRECTED EDGE CASE_ACTION (
+    FROM FraudCase, TO Action,
+    triggered_by    STRING,   // agent node name
+    triggered_at    STRING
+)
+
+// ── Action → Analyst ─────────────────────────────────────────────────────────
+CREATE DIRECTED EDGE ACTION_APPROVED_BY (
+    FROM Action, TO Analyst,
+    approved_at     STRING,
+    approval_note   STRING
+)
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CREATE GRAPH
+// ─────────────────────────────────────────────────────────────────────────────
+CREATE GRAPH FraudGraph (
+    // ── Vertices ──────────────────────────────────────────────────────────
+    Customer, Card, Device, DeviceProfile, BillingRegion,
+    Connection, Merchant,
+    Transaction, FraudCase, Evidence, Policy, FraudPattern, Action, Analyst,
+    // ── Edges ─────────────────────────────────────────────────────────────
+    OWNS_CARD, USES_DEVICE, MADE_TRANSACTION,
+    TRANSACTION_AT, TRANSACTION_WITH_CARD,
+    TRANSACTION_ON_DEVICE, TRANSACTION_ON_DEVICE_PROFILE,
+    TRANSACTION_IN_REGION,
+    TRANSACTION_VIA_CONNECTION,
+    NEXT_TRANSACTION,
+    SHARED_DEVICE, SHARED_CARD, SHARED_IP, SHARED_DEVICE_PROFILE,
+    CASE_INVOLVES, CASE_ABOUT, CASE_ON_CARD, CASE_EVIDENCE, CASE_SIMILAR_TO,
+    POLICY_CITATION, PATTERN_MATCH,
+    CASE_ACTION, ACTION_APPROVED_BY
+)
+
+USE GRAPH FraudGraph

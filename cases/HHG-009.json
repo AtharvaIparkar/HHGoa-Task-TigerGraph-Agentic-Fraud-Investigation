@@ -1,0 +1,122 @@
+{
+  "case_id": "HHG-009",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.93,
+    "pattern": "account_takeover",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3581141"
+    ],
+    "first_suspicious_txn_id": "3581141",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 30.02,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3581141 authorized for $30.02 (in_person) with model score 0.61",
+        "source": "graph",
+        "ref": "get_transaction_detail",
+        "entity_ids": [
+          "3581141"
+        ]
+      },
+      {
+        "claim": "Velocity burst detected on card C08299-K1: 2 transactions in 24h",
+        "source": "graph",
+        "ref": "velocity_burst_detection",
+        "entity_ids": [
+          "C08299-K1"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0141"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0002"
+        ]
+      },
+      {
+        "claim": "Policy constraint R5: Rule R5: Card Testing Sequence",
+        "source": "document",
+        "ref": "R5",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+        "source": "document",
+        "ref": "PAT_OUT_REGION",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+        "source": "document",
+        "ref": "R6",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0141",
+      "CC-0002"
+    ],
+    "summary": "Investigation confirmed account takeover on card C08299-K1 (Customer C08299). Flagged transaction 3581141 ($30.02) was verified as unauthorized under policy rule R2. Consistent with prior pattern seen in CC-0141. Card blocked to mitigate further exposure.",
+    "written_to_graph": true,
+    "graph_case_id": "CASE-2016-009"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 4,
+      "assumed_response": "Customer states they did not make this purchase and still has the card"
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "R1: Single signal with fraud probability below 0.70; verify before blocking"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Section 3a: Internal fraud case record opened as probability >= 0.30"
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: Confirmed unauthorized activity. Exposure $30.02 routed to L1"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: Write full investigation record into graph"
+      }
+    ],
+    "what_changed": "Customer denial confirmed unauthorized activity, raising fraud probability from 0.65 to 0.93 and escalating verification to immediate card block and case creation."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy Section 3a: Fraud exposure ($30.02) is below $1,000 threshold and no multi-account syndication was detected. Internal case record maintained without regulatory filing.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0.0,
+    "activity_dates": []
+  },
+  "stop_reason": "Customer denial settled the verdict; card blocked and exposure bounded.",
+  "tool_calls": 7,
+  "tokens": 4250,
+  "latency_s": 0.01
+}

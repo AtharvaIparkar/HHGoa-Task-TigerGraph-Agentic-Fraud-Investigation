@@ -1,0 +1,103 @@
+// =============================================================================
+// entity_transaction_history.gsql
+// Returns full transaction history for a customer or card.
+// Ordered by timestamp DESC with risk_score, amount, channel, device_profile.
+// Also returns summary stats: avg_amount, max_risk_score, txn_count.
+// Used for: baseline behavior profiling, detecting anomalies vs history.
+// =============================================================================
+
+USE GRAPH FraudGraph
+
+CREATE OR REPLACE QUERY entity_transaction_history (
+    STRING customer_id = "",
+    STRING card_id     = "",
+    INT    limit_n     = 100
+) FOR GRAPH FraudGraph SYNTAX V2 {
+
+    // ── Accumulators ─────────────────────────────────────────────────────────
+    SumAccum<DOUBLE> @@total_amount;
+    SumAccum<INT>    @@txn_count;
+    AvgAccum         @@avg_amount;
+    MaxAccum<FLOAT>  @@max_risk_score;
+    MinAccum<INT64>  @@min_epoch;
+    MaxAccum<INT64>  @@max_epoch;
+
+    TYPEDEF TUPLE <
+        STRING txn_id,
+        DOUBLE amount,
+        INT64  txn_epoch,
+        FLOAT  risk_score,
+        STRING channel,
+        STRING product_cd,
+        STRING billing_region,
+        STRING billing_country,
+        STRING device_profile_id,
+        STRING card_id_ref
+    > TxnRow;
+
+    HeapAccum<TxnRow>(limit_n, txn_epoch DESC) @@results;
+
+    // ── Branch on parameter: customer or card ────────────────────────────────
+    IF customer_id != "" THEN
+        seeds = {Customer.*};
+        cust  = SELECT c FROM seeds:c WHERE c.customer_id == customer_id;
+
+        txns = SELECT t
+               FROM cust:c -(MADE_TRANSACTION:e)-> Transaction:t
+               ACCUM
+                   @@total_amount  += t.amount,
+                   @@txn_count     += 1,
+                   @@avg_amount    += t.amount,
+                   @@max_risk_score = t.risk_score,
+                   @@results       += TxnRow(
+                       t.transaction_id,
+                       t.amount,
+                       datetime_to_epoch(t.timestamp),
+                       t.risk_score,
+                       t.channel,
+                       t.product_cd,
+                       t.billing_region,
+                       t.billing_country,
+                       t.device_profile_id,
+                       t.card_id
+                   );
+
+    ELSE IF card_id != "" THEN
+        seeds = {Card.*};
+        card  = SELECT c FROM seeds:c WHERE c.card_id == card_id;
+
+        txns = SELECT t
+               FROM card:c -(TRANSACTION_WITH_CARD:e)-> Transaction:t
+               ACCUM
+                   @@total_amount  += t.amount,
+                   @@txn_count     += 1,
+                   @@avg_amount    += t.amount,
+                   @@max_risk_score = t.risk_score,
+                   @@results       += TxnRow(
+                       t.transaction_id,
+                       t.amount,
+                       datetime_to_epoch(t.timestamp),
+                       t.risk_score,
+                       t.channel,
+                       t.product_cd,
+                       t.billing_region,
+                       t.billing_country,
+                       t.device_profile_id,
+                       t.card_id
+                   );
+    END;
+
+    // ── Summary stats ────────────────────────────────────────────────────────
+    DOUBLE avg_amt = 0.0;
+    IF @@txn_count > 0 THEN
+        avg_amt = @@total_amount / @@txn_count;
+    END;
+
+    PRINT @@results        AS transactions;
+    PRINT @@txn_count      AS txn_count;
+    PRINT avg_amt          AS avg_amount;
+    PRINT @@total_amount   AS total_amount;
+    PRINT @@max_risk_score AS max_risk_score;
+}
+
+INSTALL QUERY entity_transaction_history

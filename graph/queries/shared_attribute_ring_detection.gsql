@@ -1,0 +1,119 @@
+// =============================================================================
+// shared_attribute_ring_detection.gsql
+// Detects customers sharing the same DeviceProfile or BillingRegion
+// in a configurable time window.
+// Params: device_profile_id STRING, billing_region STRING (one or both),
+//         days_window INT (default 30)
+// Returns: {customer_id, card_id, txn_count_in_window, total_amount_in_window}
+//          + whether any appear in confirmed fraud cases.
+// Used for: R6 shared-origin rule, ring detection.
+// =============================================================================
+
+USE GRAPH FraudGraph
+
+CREATE OR REPLACE QUERY shared_attribute_ring_detection (
+    STRING device_profile_id = "",
+    STRING billing_region     = "",
+    INT    days_window        = 30
+) FOR GRAPH FraudGraph SYNTAX V2 {
+
+    // ── Per-customer accumulators ─────────────────────────────────────────────
+    SumAccum<INT>    @txn_count;
+    SumAccum<DOUBLE> @total_amount;
+    SetAccum<STRING> @card_ids;
+    OrAccum          @in_fraud_case;
+    OrAccum          @matched_device;
+    OrAccum          @matched_region;
+
+    // ── Global accumulators ───────────────────────────────────────────────────
+    TYPEDEF TUPLE <
+        STRING customer_id,
+        STRING card_ids_json,
+        INT    txn_count_in_window,
+        DOUBLE total_amount_in_window,
+        BOOL   in_confirmed_fraud_case
+    > RingMember;
+
+    ListAccum<RingMember> @@ring_members;
+    SumAccum<INT>         @@fraud_exposure_count;
+    SumAccum<INT>         @@total_ring_txns;
+
+    // ── Compute cutoff epoch ──────────────────────────────────────────────────
+    INT64 cutoff_epoch = datetime_to_epoch(now()) - (days_window * 86400);
+
+    // ── Phase 1: Find customers via shared DeviceProfile ─────────────────────
+    IF device_profile_id != "" THEN
+        dp_seeds = {DeviceProfile.*};
+        dp_vtx   = SELECT d FROM dp_seeds:d
+                   WHERE d.device_profile_id == device_profile_id;
+
+        // Find transactions on this device profile
+        dev_txns = SELECT t
+                   FROM dp_vtx:d -(TRANSACTION_ON_DEVICE_PROFILE:e)-> Transaction:t
+                   WHERE datetime_to_epoch(t.timestamp) >= cutoff_epoch;
+
+        // Tag owning customers
+        tmp1 = SELECT c
+               FROM dev_txns:t -(MADE_TRANSACTION:e)-> Customer:c
+               ACCUM
+                   c.@matched_device = TRUE,
+                   c.@txn_count     += 1,
+                   c.@total_amount  += t.amount;
+    END;
+
+    // ── Phase 2: Find customers via BillingRegion ─────────────────────────────
+    IF billing_region != "" THEN
+        br_seeds = {BillingRegion.*};
+        br_vtx   = SELECT b FROM br_seeds:b
+                   WHERE b.billing_region == billing_region;
+
+        // Find transactions in this region within window
+        reg_txns = SELECT t
+                   FROM br_vtx:b -(TRANSACTION_IN_REGION:e)-> Transaction:t
+                   WHERE datetime_to_epoch(t.timestamp) >= cutoff_epoch;
+
+        // Tag owning customers
+        tmp2 = SELECT c
+               FROM reg_txns:t -(MADE_TRANSACTION:e)-> Customer:c
+               ACCUM
+                   c.@matched_region = TRUE,
+                   c.@txn_count     += 1,
+                   c.@total_amount  += t.amount;
+    END;
+
+    // ── Phase 3: Collect card IDs per customer ────────────────────────────────
+    all_c = {Customer.*};
+    ring_cust = SELECT c FROM all_c:c
+                WHERE c.@matched_device == TRUE OR c.@matched_region == TRUE;
+
+    card_join = SELECT card
+                FROM ring_cust:c -(OWNS_CARD:e)-> Card:card
+                ACCUM c.@card_ids += card.card_id;
+
+    // ── Phase 4: Check if any customer appears in a confirmed FraudCase ───────
+    fraud_check = SELECT c
+                  FROM ring_cust:c -(CASE_ABOUT:e)-> FraudCase:fc
+                  WHERE fc.verdict == "fraud" OR fc.status == "confirmed"
+                  ACCUM c.@in_fraud_case = TRUE;
+
+    // ── Phase 5: Emit results ─────────────────────────────────────────────────
+    final = SELECT c FROM ring_cust:c
+            POST-ACCUM
+                @@ring_members += RingMember(
+                    c.customer_id,
+                    "",
+                    c.@txn_count,
+                    c.@total_amount,
+                    c.@in_fraud_case
+                ),
+                IF c.@in_fraud_case == TRUE THEN @@fraud_exposure_count += 1 END,
+                @@total_ring_txns += c.@txn_count;
+
+    PRINT @@ring_members         AS ring_members;
+    PRINT @@ring_members.size()  AS ring_size;
+    PRINT @@fraud_exposure_count AS customers_with_fraud_history;
+    PRINT @@total_ring_txns      AS total_transactions_in_window;
+    PRINT days_window            AS window_days;
+}
+
+INSTALL QUERY shared_attribute_ring_detection

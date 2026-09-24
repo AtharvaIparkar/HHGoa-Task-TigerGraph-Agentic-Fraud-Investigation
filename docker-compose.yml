@@ -1,0 +1,76 @@
+version: "3.9"
+
+# ─── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  fraud-net:
+    driver: bridge
+
+# ─── Services ─────────────────────────────────────────────────────────────────
+services:
+
+  # ── FastAPI backend ──────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: fraud-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    volumes:
+      - ./api:/app
+      - ./agent:/agent
+    networks:
+      - fraud-net
+    depends_on:
+      - mock-action-service
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── React dev server (Vite) ──────────────────────────────────────────────────
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: fraud-ui
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://api:8000
+    volumes:
+      - ./ui:/app
+      - /app/node_modules
+    networks:
+      - fraud-net
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ── Mock action service stub ─────────────────────────────────────────────────
+  mock-action-service:
+    build:
+      context: ./mock-action-service
+      dockerfile: Dockerfile
+    container_name: fraud-mock-actions
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    volumes:
+      - ./mock-action-service:/app
+    networks:
+      - fraud-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3

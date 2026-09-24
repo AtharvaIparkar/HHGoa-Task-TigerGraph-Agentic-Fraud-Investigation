@@ -1,0 +1,116 @@
+// =============================================================================
+// connected_components.gsql
+// BFS-based label propagation connected components on the customer network.
+// Uses SHARED_DEVICE_PROFILE and SHARED_CARD edges.
+// Params: min_component_size INT (default 2), include_fraud_history BOOL (default true)
+// Returns: [{component_id, member_ids, confirmed_fraud_count, total_exposure}]
+// NOTE: Native GSQL BFS - no ML Workbench license needed.
+// =============================================================================
+
+USE GRAPH FraudGraph
+
+CREATE OR REPLACE QUERY connected_components (
+    INT  min_component_size  = 2,
+    BOOL include_fraud_history = TRUE
+) FOR GRAPH FraudGraph SYNTAX V2 {
+
+    // ── Per-customer accumulators ─────────────────────────────────────────────
+    MinAccum<STRING> @comp_label;    // label = min customer_id in component
+    MinAccum<STRING> @prev_label;
+    OrAccum          @changed;
+    SumAccum<DOUBLE> @exposure;      // total exposure from fraud cases
+    SumAccum<INT>    @fraud_count;   // confirmed fraud cases
+
+    // ── Global accumulators ───────────────────────────────────────────────────
+    MapAccum<STRING, ListAccum<STRING>> @@comp_members;  // label -> [customer_ids]
+    MapAccum<STRING, DOUBLE>            @@comp_exposure; // label -> total_exposure
+    MapAccum<STRING, INT>               @@comp_fraud;    // label -> fraud_count
+
+    TYPEDEF TUPLE <
+        STRING component_id,
+        INT    member_count,
+        DOUBLE confirmed_fraud_count,
+        DOUBLE total_exposure
+    > ComponentResult;
+
+    HeapAccum<ComponentResult>(500, member_count DESC) @@results;
+
+    // ── Step 1: Initialize each customer as its own component ─────────────────
+    all_c = {Customer.*};
+    init = SELECT c FROM all_c:c
+           POST-ACCUM
+               c.@comp_label = c.customer_id,
+               c.@changed    = TRUE;
+
+    // ── Step 2: Label propagation BFS ────────────────────────────────────────
+    INT iter = 0;
+    WHILE iter < 50 DO
+        iter = iter + 1;
+
+        // Propagate minimum label via SHARED_DEVICE_PROFILE edges
+        prop1 = SELECT tgt
+                FROM all_c:src -(SHARED_DEVICE_PROFILE:e)-> Customer:tgt
+                ACCUM tgt.@comp_label += src.@comp_label;
+
+        // Propagate minimum label via SHARED_CARD edges
+        prop2 = SELECT tgt
+                FROM all_c:src -(SHARED_CARD:e)-> Customer:tgt
+                ACCUM tgt.@comp_label += src.@comp_label;
+
+        // Check for convergence: stop if no label changed
+        changed_count = SELECT c FROM all_c:c
+                        WHERE c.@comp_label != c.@prev_label
+                        POST-ACCUM c.@prev_label = c.@comp_label;
+
+        IF changed_count.size() == 0 THEN
+            BREAK;
+        END;
+    END;
+
+    // ── Step 3: Aggregate members per component ───────────────────────────────
+    agg = SELECT c FROM all_c:c
+          POST-ACCUM
+              @@comp_members += (c.@comp_label -> c.customer_id);
+
+    // ── Step 4: Optionally gather fraud exposure per component ────────────────
+    IF include_fraud_history == TRUE THEN
+        fraud_join = SELECT c
+                     FROM all_c:c -(CASE_ABOUT:e)-> FraudCase:fc
+                     WHERE fc.verdict == "fraud" OR fc.status == "confirmed"
+                     ACCUM
+                         c.@fraud_count += 1,
+                         c.@exposure    += fc.exposure_usd;
+
+        exposure_agg = SELECT c FROM all_c:c
+                       POST-ACCUM
+                           IF c.@fraud_count > 0 THEN
+                               @@comp_fraud    += (c.@comp_label -> c.@fraud_count),
+                               @@comp_exposure += (c.@comp_label -> c.@exposure)
+                           END;
+    END;
+
+    // ── Step 5: Emit components meeting minimum size ──────────────────────────
+    FOREACH (label, members) IN @@comp_members DO
+        IF members.size() >= min_component_size THEN
+            DOUBLE exp_val   = 0.0;
+            INT    fraud_val = 0;
+            IF @@comp_exposure.containsKey(label) THEN
+                exp_val = @@comp_exposure.get(label);
+            END;
+            IF @@comp_fraud.containsKey(label) THEN
+                fraud_val = @@comp_fraud.get(label);
+            END;
+            @@results += ComponentResult(
+                label,
+                members.size(),
+                fraud_val,
+                exp_val
+            );
+        END;
+    END;
+
+    PRINT @@results AS components;
+    PRINT iter      AS iterations_used;
+}
+
+INSTALL QUERY connected_components

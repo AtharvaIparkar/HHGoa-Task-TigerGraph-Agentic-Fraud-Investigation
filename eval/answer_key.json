@@ -1,0 +1,56 @@
+{
+  "description": "Benchmark answer key for the Fraud Investigation System eval suite",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "case_id": "CASE-BENCH-001",
+      "subject_customer_ids": ["CUST-00001"],
+      "expected_decision": "confirmed_fraud",
+      "expected_sar": true,
+      "expected_ring": true,
+      "expected_actions": ["freeze_account", "send_customer_message", "update_crm"],
+      "difficulty": "easy",
+      "notes": "Clear fraud ring: customer shares device with 4 others, velocity burst of 12 txns in 30 min"
+    },
+    {
+      "case_id": "CASE-BENCH-002",
+      "subject_customer_ids": ["CUST-00042"],
+      "expected_decision": "clear",
+      "expected_sar": false,
+      "expected_ring": false,
+      "expected_actions": ["update_crm"],
+      "difficulty": "medium",
+      "notes": "False positive: unusual merchant pattern but explained by travel history"
+    },
+    {
+      "case_id": "CASE-BENCH-003",
+      "subject_customer_ids": ["CUST-00010", "CUST-00011"],
+      "expected_decision": "fraud",
+      "expected_sar": true,
+      "expected_ring": true,
+      "expected_actions": ["freeze_account", "send_customer_message", "update_crm"],
+      "difficulty": "hard",
+      "notes": "Synthetic identity ring: 6 customers sharing card + device, borderline confidence"
+    },
+    {
+      "case_id": "CASE-BENCH-004",
+      "subject_customer_ids": ["CUST-00099"],
+      "expected_decision": "suspicious",
+      "expected_sar": false,
+      "expected_ring": false,
+      "expected_actions": ["send_customer_message", "update_crm"],
+      "difficulty": "medium",
+      "notes": "Account takeover attempt: new device, international transaction, no ring"
+    },
+    {
+      "case_id": "CASE-BENCH-005",
+      "subject_customer_ids": ["CUST-00150"],
+      "expected_decision": "confirmed_fraud",
+      "expected_sar": true,
+      "expected_ring": false,
+      "expected_actions": ["freeze_account", "refund_transaction", "send_customer_message", "update_crm"],
+      "difficulty": "easy",
+      "notes": "Card skimming victim: disputed high-value transactions, no ring but clear fraud pattern"
+    }
+  ]
+}

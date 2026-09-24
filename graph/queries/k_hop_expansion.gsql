@@ -1,0 +1,95 @@
+// =============================================================================
+// k_hop_expansion.gsql
+// Returns all entities reachable from a starting entity within k hops.
+// Traverses: Customer<->Customer (SHARED_DEVICE_PROFILE, SHARED_CARD),
+//            Customer->Card, Transaction->DeviceProfile.
+// Returns: list of reachable entities with type, id, hop_count.
+// Used for: mapping fraud rings and network scope.
+// =============================================================================
+
+USE GRAPH FraudGraph
+
+CREATE OR REPLACE QUERY k_hop_expansion (
+    STRING start_id,
+    STRING start_type,   // "Customer" | "Transaction" | "Card" | "FraudCase"
+    INT    k = 2         // max hops, capped at 4
+) FOR GRAPH FraudGraph SYNTAX V2 {
+
+    // ── Per-vertex accumulators ───────────────────────────────────────────────
+    OrAccum         @visited;
+    MinAccum<INT>   @hop_count;
+
+    // ── Global result accumulators ────────────────────────────────────────────
+    TYPEDEF TUPLE <
+        STRING entity_id,
+        STRING entity_type,
+        INT    hop_count
+    > EntityHop;
+
+    ListAccum<EntityHop> @@entity_list;
+    SumAccum<INT>        @@edge_count;
+    MapAccum<STRING, INT> @@type_counts;
+
+    // Cap k at 4 for safety
+    INT max_k = k;
+    IF max_k > 4 THEN max_k = 4; END;
+    IF max_k < 1 THEN max_k = 1; END;
+
+    // ── Seed the frontier ─────────────────────────────────────────────────────
+    frontier = {};
+
+    IF start_type == "Customer" THEN
+        all_seeds = {Customer.*};
+        frontier = SELECT v FROM all_seeds:v
+                   WHERE v.customer_id == start_id
+                   POST-ACCUM v.@visited = TRUE, v.@hop_count = 0;
+    ELSE IF start_type == "Transaction" THEN
+        all_seeds = {Transaction.*};
+        frontier = SELECT v FROM all_seeds:v
+                   WHERE v.transaction_id == start_id
+                   POST-ACCUM v.@visited = TRUE, v.@hop_count = 0;
+    ELSE IF start_type == "Card" THEN
+        all_seeds = {Card.*};
+        frontier = SELECT v FROM all_seeds:v
+                   WHERE v.card_id == start_id
+                   POST-ACCUM v.@visited = TRUE, v.@hop_count = 0;
+    ELSE IF start_type == "FraudCase" THEN
+        all_seeds = {FraudCase.*};
+        frontier = SELECT v FROM all_seeds:v
+                   WHERE v.case_id == start_id
+                   POST-ACCUM v.@visited = TRUE, v.@hop_count = 0;
+    END;
+
+    // Record seed
+    tmp0 = SELECT v FROM frontier:v
+           POST-ACCUM
+               @@entity_list += EntityHop(v.id(), v.type(), 0),
+               @@type_counts += (v.type() -> 1);
+
+    // ── BFS expansion ─────────────────────────────────────────────────────────
+    INT hop = 0;
+    WHILE frontier.size() > 0 AND hop < max_k DO
+        hop = hop + 1;
+
+        next_f = SELECT tgt
+                 FROM frontier:src -(:e)-> :tgt
+                 WHERE tgt.@visited == FALSE
+                 ACCUM
+                     tgt.@visited  = TRUE,
+                     tgt.@hop_count = hop,
+                     @@edge_count  += 1
+                 POST-ACCUM
+                     @@entity_list += EntityHop(tgt.id(), tgt.type(), hop),
+                     @@type_counts += (tgt.type() -> 1);
+
+        frontier = next_f;
+    END;
+
+    // ── Output ────────────────────────────────────────────────────────────────
+    PRINT @@entity_list AS entities;
+    PRINT @@type_counts AS entity_type_counts;
+    PRINT @@edge_count  AS total_edges_traversed;
+    PRINT hop           AS hops_expanded;
+}
+
+INSTALL QUERY k_hop_expansion

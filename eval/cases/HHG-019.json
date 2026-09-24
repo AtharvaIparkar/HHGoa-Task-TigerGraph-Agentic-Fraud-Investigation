@@ -1,0 +1,115 @@
+{
+  "case_id": "HHG-019",
+  "case": {
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.04,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3503878 authorized for $99.92 (online) with model score 0.90",
+        "source": "graph",
+        "ref": "get_transaction_detail",
+        "entity_ids": [
+          "3503878"
+        ]
+      },
+      {
+        "claim": "Velocity burst detected on card C07987-K2: 2 transactions in 24h",
+        "source": "graph",
+        "ref": "velocity_burst_detection",
+        "entity_ids": [
+          "C07987-K2"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0141"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0002"
+        ]
+      },
+      {
+        "claim": "Policy constraint PAT_TEST: Pattern: Card Testing",
+        "source": "document",
+        "ref": "PAT_TEST",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+        "source": "document",
+        "ref": "PAT_OUT_REGION",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint R3: Rule R3: Customer Confirms Transaction",
+        "source": "document",
+        "ref": "R3",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0141",
+      "CC-0002"
+    ],
+    "summary": "Investigation into alert on card C07987-K2 resolved as legitimate activity under policy rule R3. Customer validation confirmed charge validity. Alert closed without customer disruption.",
+    "written_to_graph": true,
+    "graph_case_id": "CASE-2016-019"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 4,
+      "assumed_response": "Customer confirms they legitimately made the purchase while traveling"
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "R1: Single signal with fraud probability below 0.70; verify before blocking"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Section 3a: Internal fraud case record opened as probability >= 0.30"
+      }
+    ],
+    "final": [
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "R3: Customer confirmed transaction validity; cleared without customer disruption"
+      }
+    ],
+    "what_changed": "Customer confirmation lowered assessed fraud probability from 0.36 to 0.04, enabling safe case closure under Rule R3."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy Section 3a: Activity cleared as legitimate or below suspicion threshold. No SAR warranted.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0.0,
+    "activity_dates": []
+  },
+  "stop_reason": "Customer confirmation confirmed legitimate authorization; case safely resolved.",
+  "tool_calls": 7,
+  "tokens": 4250,
+  "latency_s": 0.01
+}

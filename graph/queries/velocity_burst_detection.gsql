@@ -1,0 +1,112 @@
+// =============================================================================
+// velocity_burst_detection.gsql
+// Detects velocity bursts: multiple transactions in a short time window.
+// Params: card_id STRING, hours_window INT (default 24), min_txn_count INT (default 3)
+// Returns: bursts found and card-testing flag (3+ small txns <$5 then larger).
+// Used for: R5 card testing, R2 burst CNP fraud.
+// =============================================================================
+
+USE GRAPH FraudGraph
+
+CREATE OR REPLACE QUERY velocity_burst_detection (
+    STRING card_id,
+    INT    hours_window   = 24,
+    INT    min_txn_count  = 3
+) FOR GRAPH FraudGraph SYNTAX V2 {
+
+    // ── Global accumulators ───────────────────────────────────────────────────
+    SumAccum<INT>    @@txn_count;
+    SumAccum<DOUBLE> @@total_amount;
+    SumAccum<DOUBLE> @@small_txn_amount;   // txns < $5
+    SumAccum<INT>    @@small_txn_count;    // txns < $5
+    SumAccum<INT>    @@large_txn_count;    // txns >= $5
+    MaxAccum<DOUBLE> @@max_amount;
+    MinAccum<INT64>  @@window_start_epoch;
+    MaxAccum<INT64>  @@window_end_epoch;
+    BOOL             @@burst_detected;
+    BOOL             @@card_testing_flag;
+
+    TYPEDEF TUPLE <
+        STRING txn_id,
+        DOUBLE amount,
+        INT64  txn_epoch,
+        FLOAT  risk_score,
+        STRING channel,
+        STRING billing_region
+    > TxnItem;
+
+    ListAccum<TxnItem> @@window_txns;
+
+    // ── Seed: find the card ────────────────────────────────────────────────────
+    card_seeds = {Card.*};
+    card_vtx   = SELECT c FROM card_seeds:c WHERE c.card_id == card_id;
+
+    // ── Compute cutoff epoch ──────────────────────────────────────────────────
+    INT64 cutoff_epoch = datetime_to_epoch(now()) - (hours_window * 3600);
+
+    // ── Collect transactions in window ────────────────────────────────────────
+    txns_in_window = SELECT t
+                     FROM card_vtx:c -(TRANSACTION_WITH_CARD:e)-> Transaction:t
+                     WHERE datetime_to_epoch(t.timestamp) >= cutoff_epoch
+                     ACCUM
+                         @@txn_count      += 1,
+                         @@total_amount   += t.amount,
+                         @@max_amount      = t.amount,
+                         @@window_start_epoch = datetime_to_epoch(t.timestamp),
+                         @@window_end_epoch   = datetime_to_epoch(t.timestamp),
+                         IF t.amount < 5.0 THEN
+                             @@small_txn_count  += 1,
+                             @@small_txn_amount += t.amount
+                         ELSE
+                             @@large_txn_count += 1
+                         END,
+                         @@window_txns += TxnItem(
+                             t.transaction_id,
+                             t.amount,
+                             datetime_to_epoch(t.timestamp),
+                             t.risk_score,
+                             t.channel,
+                             t.billing_region
+                         );
+
+    // ── Detect velocity burst ─────────────────────────────────────────────────
+    @@burst_detected = (@@txn_count >= min_txn_count);
+
+    // ── Card-testing detection: 3+ small txns (<$5) followed by a larger one ──
+    @@card_testing_flag = (@@small_txn_count >= 3 AND @@large_txn_count >= 1);
+
+    // ── Build burst summary ───────────────────────────────────────────────────
+    TYPEDEF TUPLE <
+        INT64  start_epoch,
+        INT64  end_epoch,
+        INT    txn_count,
+        DOUBLE total_amount,
+        BOOL   card_testing
+    > BurstSummary;
+
+    ListAccum<BurstSummary> @@bursts;
+
+    IF @@burst_detected == TRUE THEN
+        @@bursts += BurstSummary(
+            @@window_start_epoch,
+            @@window_end_epoch,
+            @@txn_count,
+            @@total_amount,
+            @@card_testing_flag
+        );
+    END;
+
+    // ── Output ────────────────────────────────────────────────────────────────
+    PRINT @@bursts           AS bursts;
+    PRINT @@burst_detected   AS burst_detected;
+    PRINT @@card_testing_flag AS card_testing_detected;
+    PRINT @@txn_count        AS txn_count_in_window;
+    PRINT @@total_amount     AS total_amount_in_window;
+    PRINT @@max_amount       AS max_single_txn_amount;
+    PRINT @@small_txn_count  AS small_txn_count;
+    PRINT @@large_txn_count  AS large_txn_count;
+    PRINT @@window_txns      AS transactions;
+    PRINT hours_window       AS window_hours;
+}
+
+INSTALL QUERY velocity_burst_detection
