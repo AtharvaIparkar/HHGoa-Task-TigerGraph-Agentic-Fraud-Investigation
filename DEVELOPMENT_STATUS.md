@@ -54,24 +54,25 @@ The frontend has been completely redesigned from the ground up into a high-densi
 
 ---
 
-## 4. Redesigned Frontend Features
+## 4. Modern, Modular & Animatic Frontend Architecture
 
-1. **Analytical Investigation Graph (`InvestigationGraph.tsx`)**:
-   - High-performance SVG canvas with pan, zoom, center transaction, and fit controls.
-   - Semantic node visual hierarchy: Central Flagged Transaction (glowing alert ring) → Subject Customer & Card → Device Fingerprint → Connected Ring Members → Precedent Cases.
-   - **Bi-directional Highlighting**: Clicking any evidence claim highlights the exact graph path and entities; clicking any graph node opens the Node Detail Inspector drawer.
-2. **Before vs After Next-Best-Action Comparison**:
-   - Explicitly displays:
-     - 1. Initial Recommendation (Before Verification)
-     - 2. Final Recommendation (After Verification)
-     - Decision Delta ("What Changed") rationale callout
-   - 1-click execution for autonomous actions; formal Approval Modal for L1/L2 actions.
-3. **Evidence Provenance Feed**:
-   - Structured claim badges labeled with source (`OBSERVED`, `DERIVED`, `HISTORICAL`, `POLICY`).
-4. **FinCEN 31 CFR 1020.320 SAR Regulatory Viewer**:
-   - Complete regulatory modal with filing reason, total exposure, named subjects, and formal 5-paragraph narrative.
-5. **Operations Triage Queue & Workstation**:
-   - Fast case switcher and instant multi-field filtering across all 20 exam benchmark cases.
+1. **Light Fintech Design System & Typography**:
+   - Built on a fresh, light canvas (`#f8fafc`) with subtle ambient radial gradients and soft slate borders (`#e2e8f0`).
+   - Standardized typography pairing **Plus Jakarta Sans** (headings, navigation, controls) with **JetBrains Mono** (entity IDs, transaction amounts, timestamps, confidence scores).
+   - Removed all generic AI emojis, heavy dark surfaces, and neon borders in favor of clean floating cards with colored indicator bars.
+
+2. **Modular & Dynamic Investigation Graph (`InvestigationGraph.tsx`)**:
+   - **Dynamic Layout Switcher**: Instant switching between **"Lineage Flow"** (left-to-right payment pipeline), **"Radial Nexus"** (orbiting transaction anchor), and **"Cluster Map"** (syndicate ring grouping).
+   - **Live Telemetry Pulses**: Animated data packets (`animate-edge-flow`) travel continuously along authorized payment paths, visually illustrating money and identity movement.
+   - **Interactive Entity Filter Chips**: Filter the graph dynamically by entity type (Transaction, Card, Customer, Device, Ring).
+   - **Radar Wave Rings**: Pulsing radar rings indicate high-risk or highlighted nodes.
+
+3. **Dynamic Bayesian Probability Gauge (`CaseDetailPage.tsx`)**:
+   - Animated SVG circular gauge smoothly transitions in real-time as the user tests customer verification scenarios (e.g. 61% -> 4% upon confirmation or -> 94% upon denial).
+   - Real-time Decision Delta explaining exactly what changed in the policy matrix.
+
+4. **Next-Best-Actions (Approval Routed)**:
+   - Before vs After comparison between Initial Assessment and Post-Verification Action with 1-click execution and formal sign-off tracking.
 
 ---
 
