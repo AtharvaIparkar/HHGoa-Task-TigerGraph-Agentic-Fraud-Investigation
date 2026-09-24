@@ -1,21 +1,16 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   ZoomIn,
   ZoomOut,
   Maximize2,
   Crosshair,
-  Layers,
-  Info,
-  ShieldAlert,
-  User,
   CreditCard,
+  User,
   Smartphone,
-  MapPin,
-  Users,
-  Archive,
-  AlertOctagon,
+  ShieldAlert,
   ArrowRight,
-  X
+  X,
+  FileText
 } from "lucide-react";
 
 export interface GraphNode {
@@ -59,70 +54,75 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(selectedNodeId || null);
 
   const activeSelectedId = selectedNodeId !== undefined ? selectedNodeId : internalSelectedId;
 
-  // Compute layout positions centered around the flagged transaction
-  const layoutData = useMemo(() => {
-    const width = 800;
-    const height = 480;
+  // Clean, structured layout with spacious horizontal flow
+  const layout = useMemo(() => {
+    const width = 860;
+    const height = 440;
     const cx = width / 2;
     const cy = height / 2;
 
-    const positionedNodes = inputNodes.map((n) => {
+    const positioned = inputNodes.map((n) => {
       let x = cx;
       let y = cy;
 
-      if (n.type === "transaction") {
-        x = cx;
-        y = cy;
-      } else if (n.type === "customer") {
-        x = cx - 220;
-        y = cy + 40;
-      } else if (n.type === "card") {
-        x = cx - 180;
-        y = cy - 110;
-      } else if (n.type === "device") {
-        x = cx + 210;
-        y = cy - 90;
-      } else if (n.type === "location") {
-        x = cx + 140;
-        y = cy + 130;
-      } else if (n.type === "ring_card") {
-        x = cx + 270;
-        y = cy + 60;
-      } else if (n.type === "prior_case") {
-        x = cx - 80;
-        y = cy + 150;
-      } else {
-        x = cx + (Math.random() - 0.5) * 300;
-        y = cy + (Math.random() - 0.5) * 200;
+      switch (n.type) {
+        case "transaction":
+          x = cx;
+          y = cy - 10;
+          break;
+        case "card":
+          x = cx - 240;
+          y = cy - 80;
+          break;
+        case "customer":
+          x = cx - 260;
+          y = cy + 70;
+          break;
+        case "device":
+          x = cx + 240;
+          y = cy - 80;
+          break;
+        case "ring_card":
+          x = cx + 250;
+          y = cy + 70;
+          break;
+        case "prior_case":
+          x = cx;
+          y = cy + 130;
+          break;
+        case "location":
+          x = cx + 180;
+          y = cy + 120;
+          break;
+        default:
+          x = cx + (Math.random() - 0.5) * 200;
+          y = cy + (Math.random() - 0.5) * 150;
       }
 
       return { ...n, x, y };
     });
 
-    const nodeMap = new Map(positionedNodes.map((n) => [n.id, n]));
+    const nodeMap = new Map(positioned.map((n) => [n.id, n]));
 
-    const computedLinks = inputLinks.map((l) => {
-      const sourceNode = nodeMap.get(l.source);
-      const targetNode = nodeMap.get(l.target);
-      return {
-        ...l,
-        sourceNode,
-        targetNode,
-      };
-    });
+    const computedLinks = inputLinks.map((l) => ({
+      ...l,
+      sourceNode: nodeMap.get(l.source),
+      targetNode: nodeMap.get(l.target),
+    }));
 
-    return { nodes: positionedNodes, links: computedLinks, width, height };
+    return { nodes: positioned, links: computedLinks, width, height };
   }, [inputNodes, inputLinks]);
 
   const selectedNode = useMemo(() => {
-    return layoutData.nodes.find((n) => n.id === activeSelectedId) || null;
-  }, [layoutData.nodes, activeSelectedId]);
+    return layout.nodes.find((n) => n.id === activeSelectedId) || null;
+  }, [layout.nodes, activeSelectedId]);
 
-  // Mouse pan handlers
+  // Pan interactions
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     setIsDragging(true);
@@ -131,389 +131,246 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
+    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  const handleMouseUp = () => setIsDragging(false);
 
   const handleZoom = (delta: number) => {
-    setZoom((prev) => Math.min(Math.max(0.4, prev + delta), 2.2));
+    setZoom((prev) => Math.min(Math.max(0.6, prev + delta), 2.0));
   };
 
   const handleReset = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
-    if (onNodeSelect) onNodeSelect(null);
     setInternalSelectedId(null);
+    if (onNodeSelect) onNodeSelect(null);
   };
 
-  const handleFocusTransaction = () => {
-    setZoom(1.2);
+  const handleCenter = () => {
+    setZoom(1.1);
     setPan({ x: 0, y: 0 });
-    const txn = layoutData.nodes.find((n) => n.type === "transaction");
-    if (txn) {
-      setInternalSelectedId(txn.id);
-      if (onNodeSelect) onNodeSelect(txn);
-    }
   };
 
-  const handleNodeClick = (e: React.MouseEvent, node: GraphNode) => {
-    e.stopPropagation();
-    setInternalSelectedId(node.id);
-    if (onNodeSelect) onNodeSelect(node);
-  };
-
-  const isHighlighted = (nodeId: string) => {
+  const isNodeHighlighted = (nodeId: string) => {
     if (highlightedNodeIds.length > 0) {
       return highlightedNodeIds.some((h) => nodeId.toLowerCase().includes(h.toLowerCase()));
     }
     return false;
   };
 
-  const isNodeDimmed = (nodeId: string) => {
+  const isDimmed = (nodeId: string) => {
+    const focusId = hoveredNodeId || activeSelectedId;
     if (highlightedNodeIds.length > 0) {
-      return !isHighlighted(nodeId);
+      return !isNodeHighlighted(nodeId);
     }
-    if (activeSelectedId) {
-      if (nodeId === activeSelectedId) return false;
-      const isConnected = layoutData.links.some(
+    if (focusId) {
+      if (nodeId === focusId) return false;
+      const connected = layout.links.some(
         (l) =>
-          (l.source === activeSelectedId && l.target === nodeId) ||
-          (l.target === activeSelectedId && l.source === nodeId)
+          (l.source === focusId && l.target === nodeId) ||
+          (l.target === focusId && l.source === nodeId)
       );
-      return !isConnected;
+      return !connected;
     }
     return false;
   };
 
-  // Node visual attributes by type
-  const getNodeStyle = (node: GraphNode) => {
-    const selected = node.id === activeSelectedId;
-    const highlighted = isHighlighted(node.id);
-    const dimmed = isNodeDimmed(node.id);
-
-    let fill = "#0f172a";
-    let stroke = "#475569";
-    let textFill = "#cbd5e1";
-    let radius = 24;
-
-    switch (node.type) {
-      case "transaction":
-        fill = node.status === "flagged" ? "#4c0519" : "#1e1b4b";
-        stroke = node.status === "flagged" ? "#f43f5e" : "#818cf8";
-        radius = 32;
-        break;
-      case "customer":
-        fill = "#082f49";
-        stroke = "#0ea5e9";
-        radius = 24;
-        break;
-      case "card":
-        fill = node.status === "compromised" ? "#450a0a" : "#0c4a6e";
-        stroke = node.status === "compromised" ? "#ef4444" : "#38bdf8";
-        radius = 24;
-        break;
-      case "device":
-        fill = "#2e1065";
-        stroke = "#a855f7";
-        radius = 24;
-        break;
-      case "ring_card":
-        fill = "#451a03";
-        stroke = "#f59e0b";
-        radius = 22;
-        break;
-      case "prior_case":
-        fill = "#1c1917";
-        stroke = "#eab308";
-        radius = 22;
-        break;
-      default:
-        fill = "#0f172a";
-        stroke = "#64748b";
-    }
-
-    if (highlighted) {
-      stroke = "#38bdf8";
-    }
-    if (selected) {
-      stroke = "#ffffff";
-    }
-
-    return { fill, stroke, textFill, radius, opacity: dimmed ? 0.25 : 1 };
-  };
-
   return (
     <div
-      className={`relative w-full rounded-xl bg-slate-950 border border-slate-800/90 overflow-hidden select-none ${className}`}
       ref={containerRef}
+      className={`relative w-full rounded-lg bg-[#0e0f13] border border-[#222329] overflow-hidden select-none ${className}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* Background Dot Radar Grid */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
-        <defs>
-          <pattern id="grid-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1" fill="#475569" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid-dots)" />
-      </svg>
-
-      {/* Floating Operational Toolbar */}
-      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur border border-slate-800 p-1.5 rounded-lg shadow-lg">
+      {/* Sleek, minimal canvas controls */}
+      <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-[#14151a]/90 backdrop-blur border border-[#26272e] rounded-md p-1 shadow-sm">
         <button
           onClick={() => handleZoom(0.15)}
-          className="p-1.5 hover:bg-slate-800 text-slate-300 rounded transition-colors"
-          title="Zoom In"
+          className="p-1 hover:bg-[#202128] text-zinc-400 hover:text-zinc-200 rounded transition-colors"
+          title="Zoom in"
         >
-          <ZoomIn className="w-4 h-4" />
+          <ZoomIn className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => handleZoom(-0.15)}
-          className="p-1.5 hover:bg-slate-800 text-slate-300 rounded transition-colors"
-          title="Zoom Out"
+          className="p-1 hover:bg-[#202128] text-zinc-400 hover:text-zinc-200 rounded transition-colors"
+          title="Zoom out"
         >
-          <ZoomOut className="w-4 h-4" />
+          <ZoomOut className="w-3.5 h-3.5" />
         </button>
-        <div className="w-px h-4 bg-slate-800 mx-0.5" />
+        <div className="w-px h-3.5 bg-[#26272e] mx-0.5" />
         <button
-          onClick={handleFocusTransaction}
-          className="p-1.5 hover:bg-slate-800 text-cyan-400 rounded transition-colors flex items-center gap-1 text-xs font-mono"
-          title="Center Flagged Transaction"
+          onClick={handleCenter}
+          className="p-1 hover:bg-[#202128] text-zinc-400 hover:text-zinc-200 rounded transition-colors"
+          title="Recenter"
         >
-          <Crosshair className="w-4 h-4" />
-          <span className="hidden sm:inline">Center Txn</span>
+          <Crosshair className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={handleReset}
-          className="p-1.5 hover:bg-slate-800 text-slate-300 rounded transition-colors"
-          title="Fit & Reset View"
+          className="p-1 hover:bg-[#202128] text-zinc-400 hover:text-zinc-200 rounded transition-colors"
+          title="Reset"
         >
-          <Maximize2 className="w-4 h-4" />
+          <Maximize2 className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Differentiator & Subgraph Legend */}
-      <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-3 bg-slate-900/90 backdrop-blur border border-slate-800 px-3 py-1.5 rounded-lg text-[11px] text-slate-400 font-mono shadow-lg">
+      {/* Subtle, classy legend */}
+      <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-4 text-[11px] text-zinc-400 font-mono">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-500/20"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
           Flagged Txn
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-          Customer / Card
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+          Entity
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-          Device / Fingerprint
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-          Syndicate Ring
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
-          Precedent (Diff C)
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          Cluster / Ring
         </span>
       </div>
 
       {/* SVG Canvas */}
       <svg
         className="w-full h-80 sm:h-96 cursor-grab active:cursor-grabbing"
-        viewBox={`0 0 ${layoutData.width} ${layoutData.height}`}
+        viewBox={`0 0 ${layout.width} ${layout.height}`}
       >
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Edge Links */}
-          {layoutData.links.map((link) => {
+          {/* Subtle connecting lines */}
+          {layout.links.map((link) => {
             if (!link.sourceNode || !link.targetNode) return null;
             const x1 = link.sourceNode.x || 0;
             const y1 = link.sourceNode.y || 0;
             const x2 = link.targetNode.x || 0;
             const y2 = link.targetNode.y || 0;
 
-            const isLinkHighlighted =
-              isHighlighted(link.source) ||
-              isHighlighted(link.target) ||
-              (activeSelectedId && (link.source === activeSelectedId || link.target === activeSelectedId));
+            const isFocus =
+              hoveredNodeId === link.source ||
+              hoveredNodeId === link.target ||
+              activeSelectedId === link.source ||
+              activeSelectedId === link.target ||
+              isNodeHighlighted(link.source) ||
+              isNodeHighlighted(link.target);
 
-            const isDimmed =
-              (highlightedNodeIds.length > 0 && !isLinkHighlighted) ||
-              (activeSelectedId && !isLinkHighlighted);
+            const dimmed = isDimmed(link.source) || isDimmed(link.target);
 
-            let strokeColor = "#334155";
-            let strokeWidth = 1.5;
-            let strokeDasharray = "none";
-
-            if (link.type === "CONNECTED_RING") {
-              strokeColor = "#f59e0b";
-              strokeDasharray = "4 3";
-              strokeWidth = 2;
-            } else if (link.type === "SHARED_DEVICE_PROFILE") {
-              strokeColor = "#a855f7";
-              strokeDasharray = "3 2";
-              strokeWidth = 2;
-            } else if (link.type === "CASE_SIMILAR_TO") {
-              strokeColor = "#eab308";
-              strokeDasharray = "5 3";
-              strokeWidth = 1.5;
-            } else if (link.is_primary) {
-              strokeColor = "#0ea5e9";
-              strokeWidth = 2.2;
-            }
-
-            if (isLinkHighlighted) {
-              strokeColor = "#38bdf8";
-              strokeWidth = 2.5;
-            }
-
-            const midX = (x1 + x2) / 2;
-            const midY = (y1 + y2) / 2;
+            // Clean curved path
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const cx1 = x1 + dx * 0.4;
+            const cy1 = y1;
+            const cx2 = x1 + dx * 0.6;
+            const cy2 = y2;
+            const pathD = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
 
             return (
-              <g key={link.id} opacity={isDimmed ? 0.15 : 0.85}>
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={strokeColor}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={strokeDasharray}
+              <g key={link.id} opacity={dimmed ? 0.15 : isFocus ? 1 : 0.45}>
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke={isFocus ? "#38bdf8" : link.type === "CONNECTED_RING" ? "#f59e0b" : "#3f3f46"}
+                  strokeWidth={isFocus ? 1.8 : 1.2}
+                  strokeDasharray={link.type === "CONNECTED_RING" ? "4 3" : "none"}
                 />
-                {/* Edge Type Label */}
-                <rect
-                  x={midX - 28}
-                  y={midY - 7}
-                  width="56"
-                  height="14"
-                  rx="3"
-                  fill="#0b0f19"
-                  stroke="#1e293b"
-                  strokeWidth="0.5"
-                />
-                <text
-                  x={midX}
-                  y={midY + 3}
-                  textAnchor="middle"
-                  fill="#94a3b8"
-                  fontSize="7"
-                  fontFamily="monospace"
-                  fontWeight="600"
-                >
-                  {link.type}
-                </text>
               </g>
             );
           })}
 
-          {/* Graph Nodes */}
-          {layoutData.nodes.map((node) => {
-            const style = getNodeStyle(node);
+          {/* Clean, classy node cards */}
+          {layout.nodes.map((node) => {
+            const x = node.x || 0;
+            const y = node.y || 0;
             const isSelected = node.id === activeSelectedId;
-            const highlighted = isHighlighted(node.id);
+            const isHovered = node.id === hoveredNodeId;
+            const isHigh = isNodeHighlighted(node.id);
+            const dimmed = isDimmed(node.id);
+            const isTxn = node.type === "transaction";
+
+            // Classy, compact card sizing
+            const cardWidth = isTxn ? 150 : 130;
+            const cardHeight = isTxn ? 52 : 44;
 
             return (
               <g
                 key={node.id}
-                transform={`translate(${node.x}, ${node.y})`}
-                onClick={(e) => handleNodeClick(e, node)}
-                className="cursor-pointer transition-opacity duration-200"
-                opacity={style.opacity}
+                transform={`translate(${x - cardWidth / 2}, ${y - cardHeight / 2})`}
+                className="cursor-pointer"
+                opacity={dimmed ? 0.2 : 1}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setInternalSelectedId(node.id);
+                  if (onNodeSelect) onNodeSelect(node);
+                }}
               >
-                {/* Pulsing ring for flagged or highlighted node */}
-                {(highlighted || (node.type === "transaction" && node.status === "flagged")) && (
-                  <circle
-                    r={style.radius + 8}
-                    fill="none"
-                    stroke={node.type === "transaction" ? "#f43f5e" : "#38bdf8"}
-                    strokeWidth="1.5"
-                    strokeDasharray="4 2"
-                    className="animate-spin"
-                    style={{ animationDuration: "12s" }}
-                  />
-                )}
-
-                {/* Node Outer Selection Glow */}
-                {isSelected && (
-                  <circle
-                    r={style.radius + 5}
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="2.5"
-                  />
-                )}
-
-                {/* Main Node Body */}
-                <circle
-                  r={style.radius}
-                  fill={style.fill}
-                  stroke={style.stroke}
-                  strokeWidth={isSelected ? 3 : 2}
-                  className="shadow-xl"
+                {/* Clean card background */}
+                <rect
+                  width={cardWidth}
+                  height={cardHeight}
+                  rx="6"
+                  fill={isTxn ? "#16171d" : "#121317"}
+                  stroke={
+                    isSelected
+                      ? "#ffffff"
+                      : isHigh
+                      ? "#38bdf8"
+                      : isHovered
+                      ? "#52525b"
+                      : isTxn
+                      ? node.status === "flagged"
+                        ? "#e11d48"
+                        : "#27272a"
+                      : "#222329"
+                  }
+                  strokeWidth={isSelected || isHigh ? 1.5 : 1}
+                  className="transition-colors duration-150"
                 />
 
-                {/* Node Icon Graphic */}
-                {node.type === "transaction" && (
-                  <text y="-4" textAnchor="middle" fill="#fecdd3" fontSize="11" fontWeight="bold">
-                    $
-                  </text>
-                )}
-                {node.type === "customer" && (
-                  <text y="-3" textAnchor="middle" fill="#38bdf8" fontSize="10">
-                    👤
-                  </text>
-                )}
-                {node.type === "card" && (
-                  <text y="-3" textAnchor="middle" fill="#67e8f9" fontSize="10">
-                    💳
-                  </text>
-                )}
-                {node.type === "device" && (
-                  <text y="-3" textAnchor="middle" fill="#c084fc" fontSize="10">
-                    📱
-                  </text>
-                )}
-                {node.type === "ring_card" && (
-                  <text y="-3" textAnchor="middle" fill="#fef08a" fontSize="10">
-                    ⚠️
-                  </text>
-                )}
-                {node.type === "prior_case" && (
-                  <text y="-3" textAnchor="middle" fill="#fde047" fontSize="10">
-                    📜
-                  </text>
-                )}
+                {/* Status indicator dot */}
+                <circle
+                  cx="12"
+                  cy={cardHeight / 2}
+                  r="3"
+                  fill={
+                    isTxn && node.status === "flagged"
+                      ? "#f43f5e"
+                      : node.type === "ring_card"
+                      ? "#fbbf24"
+                      : node.status === "compromised"
+                      ? "#f43f5e"
+                      : "#10b981"
+                  }
+                />
 
-                {/* Node Label */}
+                {/* Primary Label */}
                 <text
-                  y={style.radius + 14}
-                  textAnchor="middle"
-                  fill="#f1f5f9"
-                  fontSize="9.5"
+                  x="24"
+                  y={isTxn ? 22 : 19}
+                  fill="#fafafa"
+                  fontSize={isTxn ? "11" : "10"}
                   fontWeight="600"
-                  fontFamily="sans-serif"
+                  fontFamily="system-ui, sans-serif"
                 >
                   {node.label}
                 </text>
 
                 {/* Secondary Type / Status Subtitle */}
                 <text
-                  y={style.radius + 24}
-                  textAnchor="middle"
-                  fill="#94a3b8"
-                  fontSize="7.5"
+                  x="24"
+                  y={isTxn ? 37 : 33}
+                  fill="#71717a"
+                  fontSize="8.5"
                   fontFamily="monospace"
                 >
                   {node.type.toUpperCase()}
-                  {node.status ? ` · ${node.status}` : ""}
+                  {isTxn && node.details?.amount_usd
+                    ? ` · $${Number(node.details.amount_usd).toFixed(2)}`
+                    : ""}
                 </text>
               </g>
             );
@@ -521,67 +378,42 @@ export const InvestigationGraph: React.FC<InvestigationGraphProps> = ({
         </g>
       </svg>
 
-      {/* Bottom Status bar */}
-      <div className="absolute bottom-2 left-3 z-10 flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-        <span>TigerGraph Topology GraphRAG</span>
-        <span>•</span>
-        <span>{layoutData.nodes.length} Vertices</span>
-        <span>•</span>
-        <span>{layoutData.links.length} Edges</span>
-      </div>
-
       {/* Selected Node Details Drawer */}
       {selectedNode && (
-        <div className="absolute bottom-3 right-3 z-20 w-80 bg-slate-900/95 backdrop-blur border border-slate-700/80 rounded-xl p-3.5 shadow-2xl text-xs space-y-2">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-1.5">
-              <Info className="w-4 h-4 text-cyan-400" />
-              <span className="font-bold text-slate-100 font-mono">{selectedNode.label}</span>
-            </div>
+        <div className="absolute bottom-3 right-3 z-20 w-72 bg-[#121317]/95 backdrop-blur border border-[#27272a] rounded-lg p-3 text-xs shadow-lg space-y-2">
+          <div className="flex items-center justify-between border-b border-[#222329] pb-2">
+            <span className="font-semibold text-zinc-100 font-mono text-[11px]">
+              {selectedNode.label}
+            </span>
             <button
               onClick={() => {
                 setInternalSelectedId(null);
                 if (onNodeSelect) onNodeSelect(null);
               }}
-              className="text-slate-400 hover:text-slate-200"
+              className="text-zinc-500 hover:text-zinc-300"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="space-y-1.5 text-slate-300">
-            <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">Vertex ID:</span>
-              <span className="font-mono text-cyan-400">{selectedNode.id}</span>
+          <div className="space-y-1 text-zinc-400 font-mono text-[10px]">
+            <div className="flex justify-between">
+              <span>Entity ID:</span>
+              <span className="text-zinc-200">{selectedNode.id}</span>
             </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">Vertex Type:</span>
-              <span className="font-mono text-slate-200 uppercase">{selectedNode.type}</span>
+            <div className="flex justify-between">
+              <span>Type:</span>
+              <span className="text-zinc-200 uppercase">{selectedNode.type}</span>
             </div>
-            {selectedNode.status && (
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500">Status:</span>
-                <span className="font-mono text-amber-400 font-bold uppercase">{selectedNode.status}</span>
-              </div>
-            )}
-
-            {/* Custom attributes */}
-            {selectedNode.details && Object.entries(selectedNode.details).map(([key, val]) => (
-              <div key={key} className="flex justify-between text-[11px] pt-1 border-t border-slate-800/60">
-                <span className="text-slate-500 capitalize">{key.replace(/_/g, " ")}:</span>
-                <span className="font-mono text-slate-200 truncate max-w-[170px]" title={String(val)}>
-                  {typeof val === "number" ? val.toFixed(2) : String(val)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-[10px] text-slate-500 pt-1 italic">
-            Directly connected to {
-              layoutData.links.filter(
-                (l) => l.source === selectedNode.id || l.target === selectedNode.id
-              ).length
-            } graph neighbor vertices.
+            {selectedNode.details &&
+              Object.entries(selectedNode.details).map(([k, v]) => (
+                <div key={k} className="flex justify-between pt-0.5 border-t border-[#1c1d22]">
+                  <span className="text-zinc-500">{k}:</span>
+                  <span className="text-zinc-200 truncate max-w-[130px]" title={String(v)}>
+                    {typeof v === "number" ? v.toFixed(2) : String(v)}
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
       )}
