@@ -18,7 +18,7 @@ import logging
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -89,13 +89,7 @@ async def health_check():
     }
 
 
-@app.get("/", include_in_schema=False)
-async def root():
-    return {"message": "Fraud Investigation API — see /docs for Swagger UI"}
-
-
 # ─── Routers ──────────────────────────────────────────────────────────────────
-# Imported here to avoid circular imports; routers are lazy-loaded
 try:
     from api.routers import cases, investigate, actions, graph as graph_router
     app.include_router(cases.router,       prefix="/api/cases",          tags=["Cases"])
@@ -106,5 +100,32 @@ try:
     app.include_router(actions.router,     prefix="/api/v1/actions",     tags=["Actions"])
     app.include_router(graph_router.router,prefix="/api/v1/graph",       tags=["Graph"])
 except ImportError as exc:
-    # Routers not yet implemented — skip silently during scaffold phase
     log.warning("routers_not_loaded", error=str(exc))
+
+
+# ─── Frontend SPA Static Files (For 1-click deployment) ────────────────────────
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+UI_DIST = Path(__file__).resolve().parent.parent / "ui" / "dist"
+
+if UI_DIST.exists() and (UI_DIST / "index.html").exists():
+    # Mount compiled frontend assets
+    if (UI_DIST / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=str(UI_DIST / "assets")), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        # Allow API routes to pass through
+        if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("redoc") or full_path.startswith("health"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        file_path = UI_DIST / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(UI_DIST / "index.html")
+else:
+    @app.get("/", include_in_schema=False)
+    async def root():
+        return {"message": "Fraud Investigation API — see /docs for Swagger UI"}
+

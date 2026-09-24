@@ -6,7 +6,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
@@ -44,7 +44,7 @@ venv.bak/
 # ─── Node / React ─────────────────────────────────────────────────────────────
 node_modules/
 ui/node_modules/
-ui/dist/
+# ui/dist/ (tracked for zero-build 1-click web deployments)
 ui/.vite/
 *.tsbuildinfo
 npm-debug.log*

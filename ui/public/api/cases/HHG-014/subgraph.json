@@ -1,0 +1,532 @@
+{
+  "case_id": "HHG-014",
+  "subgraph": {
+    "case_id": "HHG-014",
+    "nodes": [
+      {
+        "id": "txn_3478561",
+        "label": "Txn 3478561",
+        "type": "transaction",
+        "status": "flagged",
+        "details": {
+          "amount_usd": 77.07,
+          "risk_score": 0.95,
+          "is_flagged": true,
+          "verdict": "fraud"
+        }
+      },
+      {
+        "id": "cust_C13487",
+        "label": "Customer C13487",
+        "type": "customer",
+        "status": "subject",
+        "details": {
+          "customer_id": "C13487"
+        }
+      },
+      {
+        "id": "card_C13487-K1",
+        "label": "Card C13487-K1",
+        "type": "card",
+        "status": "compromised",
+        "details": {
+          "card_id": "C13487-K1"
+        }
+      },
+      {
+        "id": "dev_0_HHG-014",
+        "label": "DEV-889104b",
+        "type": "device",
+        "status": "suspicious",
+        "details": {
+          "full_user_agent": "DEV-889104b"
+        }
+      },
+      {
+        "id": "card_C12382-K1",
+        "label": "Syndicate C12382-K1",
+        "type": "ring_card",
+        "status": "syndicate",
+        "details": {
+          "card_id": "C12382-K1",
+          "ring_member": true
+        }
+      },
+      {
+        "id": "card_C08771-K1",
+        "label": "Syndicate C08771-K1",
+        "type": "ring_card",
+        "status": "syndicate",
+        "details": {
+          "card_id": "C08771-K1",
+          "ring_member": true
+        }
+      },
+      {
+        "id": "card_C02194-K2",
+        "label": "Syndicate C02194-K2",
+        "type": "ring_card",
+        "status": "syndicate",
+        "details": {
+          "card_id": "C02194-K2",
+          "ring_member": true
+        }
+      },
+      {
+        "id": "prior_CC-0141",
+        "label": "Precedent CC-0141",
+        "type": "prior_case",
+        "status": "cited",
+        "details": {
+          "precedent_id": "CC-0141",
+          "similarity": 0.84
+        }
+      },
+      {
+        "id": "prior_CC-0002",
+        "label": "Precedent CC-0002",
+        "type": "prior_case",
+        "status": "cited",
+        "details": {
+          "precedent_id": "CC-0002",
+          "similarity": 0.84
+        }
+      }
+    ],
+    "links": [
+      {
+        "id": "txn_3478561->cust_C13487",
+        "source": "txn_3478561",
+        "target": "cust_C13487",
+        "type": "PERFORMED_BY",
+        "weight": 1.0,
+        "is_primary": true
+      },
+      {
+        "id": "txn_3478561->card_C13487-K1",
+        "source": "txn_3478561",
+        "target": "card_C13487-K1",
+        "type": "PAID_WITH",
+        "weight": 1.0,
+        "is_primary": true
+      },
+      {
+        "id": "cust_C13487->card_C13487-K1",
+        "source": "cust_C13487",
+        "target": "card_C13487-K1",
+        "type": "HOLDS_CARD",
+        "weight": 1.0,
+        "is_primary": false
+      },
+      {
+        "id": "txn_3478561->dev_0_HHG-014",
+        "source": "txn_3478561",
+        "target": "dev_0_HHG-014",
+        "type": "USED_DEVICE",
+        "weight": 1.2,
+        "is_primary": false
+      },
+      {
+        "id": "card_C13487-K1->dev_0_HHG-014",
+        "source": "card_C13487-K1",
+        "target": "dev_0_HHG-014",
+        "type": "SHARED_DEVICE_PROFILE",
+        "weight": 1.0,
+        "is_primary": false
+      },
+      {
+        "id": "card_C13487-K1->card_C12382-K1",
+        "source": "card_C13487-K1",
+        "target": "card_C12382-K1",
+        "type": "CONNECTED_RING",
+        "weight": 1.5,
+        "is_primary": false
+      },
+      {
+        "id": "card_C13487-K1->card_C08771-K1",
+        "source": "card_C13487-K1",
+        "target": "card_C08771-K1",
+        "type": "CONNECTED_RING",
+        "weight": 1.5,
+        "is_primary": false
+      },
+      {
+        "id": "card_C13487-K1->card_C02194-K2",
+        "source": "card_C13487-K1",
+        "target": "card_C02194-K2",
+        "type": "CONNECTED_RING",
+        "weight": 1.5,
+        "is_primary": false
+      },
+      {
+        "id": "txn_3478561->prior_CC-0141",
+        "source": "txn_3478561",
+        "target": "prior_CC-0141",
+        "type": "CASE_SIMILAR_TO",
+        "weight": 0.9,
+        "is_primary": false
+      },
+      {
+        "id": "txn_3478561->prior_CC-0002",
+        "source": "txn_3478561",
+        "target": "prior_CC-0002",
+        "type": "CASE_SIMILAR_TO",
+        "weight": 0.9,
+        "is_primary": false
+      }
+    ],
+    "vertices": [
+      {
+        "type": "transaction",
+        "id": "txn_3478561",
+        "attributes": {
+          "id": "txn_3478561",
+          "label": "Txn 3478561",
+          "type": "transaction",
+          "status": "flagged",
+          "details": {
+            "amount_usd": 77.07,
+            "risk_score": 0.95,
+            "is_flagged": true,
+            "verdict": "fraud"
+          }
+        }
+      },
+      {
+        "type": "customer",
+        "id": "cust_C13487",
+        "attributes": {
+          "id": "cust_C13487",
+          "label": "Customer C13487",
+          "type": "customer",
+          "status": "subject",
+          "details": {
+            "customer_id": "C13487"
+          }
+        }
+      },
+      {
+        "type": "card",
+        "id": "card_C13487-K1",
+        "attributes": {
+          "id": "card_C13487-K1",
+          "label": "Card C13487-K1",
+          "type": "card",
+          "status": "compromised",
+          "details": {
+            "card_id": "C13487-K1"
+          }
+        }
+      },
+      {
+        "type": "device",
+        "id": "dev_0_HHG-014",
+        "attributes": {
+          "id": "dev_0_HHG-014",
+          "label": "DEV-889104b",
+          "type": "device",
+          "status": "suspicious",
+          "details": {
+            "full_user_agent": "DEV-889104b"
+          }
+        }
+      },
+      {
+        "type": "ring_card",
+        "id": "card_C12382-K1",
+        "attributes": {
+          "id": "card_C12382-K1",
+          "label": "Syndicate C12382-K1",
+          "type": "ring_card",
+          "status": "syndicate",
+          "details": {
+            "card_id": "C12382-K1",
+            "ring_member": true
+          }
+        }
+      },
+      {
+        "type": "ring_card",
+        "id": "card_C08771-K1",
+        "attributes": {
+          "id": "card_C08771-K1",
+          "label": "Syndicate C08771-K1",
+          "type": "ring_card",
+          "status": "syndicate",
+          "details": {
+            "card_id": "C08771-K1",
+            "ring_member": true
+          }
+        }
+      },
+      {
+        "type": "ring_card",
+        "id": "card_C02194-K2",
+        "attributes": {
+          "id": "card_C02194-K2",
+          "label": "Syndicate C02194-K2",
+          "type": "ring_card",
+          "status": "syndicate",
+          "details": {
+            "card_id": "C02194-K2",
+            "ring_member": true
+          }
+        }
+      },
+      {
+        "type": "prior_case",
+        "id": "prior_CC-0141",
+        "attributes": {
+          "id": "prior_CC-0141",
+          "label": "Precedent CC-0141",
+          "type": "prior_case",
+          "status": "cited",
+          "details": {
+            "precedent_id": "CC-0141",
+            "similarity": 0.84
+          }
+        }
+      },
+      {
+        "type": "prior_case",
+        "id": "prior_CC-0002",
+        "attributes": {
+          "id": "prior_CC-0002",
+          "label": "Precedent CC-0002",
+          "type": "prior_case",
+          "status": "cited",
+          "details": {
+            "precedent_id": "CC-0002",
+            "similarity": 0.84
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "type": "PERFORMED_BY",
+        "source": "txn_3478561",
+        "target": "cust_C13487"
+      },
+      {
+        "type": "PAID_WITH",
+        "source": "txn_3478561",
+        "target": "card_C13487-K1"
+      },
+      {
+        "type": "HOLDS_CARD",
+        "source": "cust_C13487",
+        "target": "card_C13487-K1"
+      },
+      {
+        "type": "USED_DEVICE",
+        "source": "txn_3478561",
+        "target": "dev_0_HHG-014"
+      },
+      {
+        "type": "SHARED_DEVICE_PROFILE",
+        "source": "card_C13487-K1",
+        "target": "dev_0_HHG-014"
+      },
+      {
+        "type": "CONNECTED_RING",
+        "source": "card_C13487-K1",
+        "target": "card_C12382-K1"
+      },
+      {
+        "type": "CONNECTED_RING",
+        "source": "card_C13487-K1",
+        "target": "card_C08771-K1"
+      },
+      {
+        "type": "CONNECTED_RING",
+        "source": "card_C13487-K1",
+        "target": "card_C02194-K2"
+      },
+      {
+        "type": "CASE_SIMILAR_TO",
+        "source": "txn_3478561",
+        "target": "prior_CC-0141"
+      },
+      {
+        "type": "CASE_SIMILAR_TO",
+        "source": "txn_3478561",
+        "target": "prior_CC-0002"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "txn_3478561",
+      "label": "Txn 3478561",
+      "type": "transaction",
+      "status": "flagged",
+      "details": {
+        "amount_usd": 77.07,
+        "risk_score": 0.95,
+        "is_flagged": true,
+        "verdict": "fraud"
+      }
+    },
+    {
+      "id": "cust_C13487",
+      "label": "Customer C13487",
+      "type": "customer",
+      "status": "subject",
+      "details": {
+        "customer_id": "C13487"
+      }
+    },
+    {
+      "id": "card_C13487-K1",
+      "label": "Card C13487-K1",
+      "type": "card",
+      "status": "compromised",
+      "details": {
+        "card_id": "C13487-K1"
+      }
+    },
+    {
+      "id": "dev_0_HHG-014",
+      "label": "DEV-889104b",
+      "type": "device",
+      "status": "suspicious",
+      "details": {
+        "full_user_agent": "DEV-889104b"
+      }
+    },
+    {
+      "id": "card_C12382-K1",
+      "label": "Syndicate C12382-K1",
+      "type": "ring_card",
+      "status": "syndicate",
+      "details": {
+        "card_id": "C12382-K1",
+        "ring_member": true
+      }
+    },
+    {
+      "id": "card_C08771-K1",
+      "label": "Syndicate C08771-K1",
+      "type": "ring_card",
+      "status": "syndicate",
+      "details": {
+        "card_id": "C08771-K1",
+        "ring_member": true
+      }
+    },
+    {
+      "id": "card_C02194-K2",
+      "label": "Syndicate C02194-K2",
+      "type": "ring_card",
+      "status": "syndicate",
+      "details": {
+        "card_id": "C02194-K2",
+        "ring_member": true
+      }
+    },
+    {
+      "id": "prior_CC-0141",
+      "label": "Precedent CC-0141",
+      "type": "prior_case",
+      "status": "cited",
+      "details": {
+        "precedent_id": "CC-0141",
+        "similarity": 0.84
+      }
+    },
+    {
+      "id": "prior_CC-0002",
+      "label": "Precedent CC-0002",
+      "type": "prior_case",
+      "status": "cited",
+      "details": {
+        "precedent_id": "CC-0002",
+        "similarity": 0.84
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "txn_3478561->cust_C13487",
+      "source": "txn_3478561",
+      "target": "cust_C13487",
+      "type": "PERFORMED_BY",
+      "weight": 1.0,
+      "is_primary": true
+    },
+    {
+      "id": "txn_3478561->card_C13487-K1",
+      "source": "txn_3478561",
+      "target": "card_C13487-K1",
+      "type": "PAID_WITH",
+      "weight": 1.0,
+      "is_primary": true
+    },
+    {
+      "id": "cust_C13487->card_C13487-K1",
+      "source": "cust_C13487",
+      "target": "card_C13487-K1",
+      "type": "HOLDS_CARD",
+      "weight": 1.0,
+      "is_primary": false
+    },
+    {
+      "id": "txn_3478561->dev_0_HHG-014",
+      "source": "txn_3478561",
+      "target": "dev_0_HHG-014",
+      "type": "USED_DEVICE",
+      "weight": 1.2,
+      "is_primary": false
+    },
+    {
+      "id": "card_C13487-K1->dev_0_HHG-014",
+      "source": "card_C13487-K1",
+      "target": "dev_0_HHG-014",
+      "type": "SHARED_DEVICE_PROFILE",
+      "weight": 1.0,
+      "is_primary": false
+    },
+    {
+      "id": "card_C13487-K1->card_C12382-K1",
+      "source": "card_C13487-K1",
+      "target": "card_C12382-K1",
+      "type": "CONNECTED_RING",
+      "weight": 1.5,
+      "is_primary": false
+    },
+    {
+      "id": "card_C13487-K1->card_C08771-K1",
+      "source": "card_C13487-K1",
+      "target": "card_C08771-K1",
+      "type": "CONNECTED_RING",
+      "weight": 1.5,
+      "is_primary": false
+    },
+    {
+      "id": "card_C13487-K1->card_C02194-K2",
+      "source": "card_C13487-K1",
+      "target": "card_C02194-K2",
+      "type": "CONNECTED_RING",
+      "weight": 1.5,
+      "is_primary": false
+    },
+    {
+      "id": "txn_3478561->prior_CC-0141",
+      "source": "txn_3478561",
+      "target": "prior_CC-0141",
+      "type": "CASE_SIMILAR_TO",
+      "weight": 0.9,
+      "is_primary": false
+    },
+    {
+      "id": "txn_3478561->prior_CC-0002",
+      "source": "txn_3478561",
+      "target": "prior_CC-0002",
+      "type": "CASE_SIMILAR_TO",
+      "weight": 0.9,
+      "is_primary": false
+    }
+  ],
+  "source": "tigergraph_evidence_synthesizer"
+}

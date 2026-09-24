@@ -1,0 +1,259 @@
+{
+  "case_id": "HHG-007",
+  "title": "Investigation Alert: risk_score (HHG-007)",
+  "description": "Real-time model scored transaction 3514948 ($111.92, in billing region 264.0) at 0.87. Review and decide.",
+  "status": "closed",
+  "priority": "medium",
+  "decision": "legitimate",
+  "verdict": "legitimate",
+  "risk_score": 0.87,
+  "confidence_score": 0.04,
+  "created_at": "2016-12-05 03:46:14",
+  "updated_at": "2026-09-24T17:46:49.731378",
+  "trigger_source": "risk_score",
+  "trigger_type": "risk_score",
+  "trigger_text": "Real-time model scored transaction 3514948 ($111.92, in billing region 264.0) at 0.87. Review and decide.",
+  "flagged_txn_id": "3514948",
+  "card_id": "C09933-K2",
+  "customer_id": "C09933",
+  "subject_customer_ids": [
+    "C09933"
+  ],
+  "exposure_usd": 0.0,
+  "pattern": "none",
+  "sar_required": false,
+  "tags": [
+    "none",
+    "risk_score"
+  ],
+  "evidence_items": [
+    {
+      "evidence_id": "ev-0",
+      "evidence_type": "graph",
+      "title": "get_transaction_detail",
+      "description": "Flagged transaction 3514948 authorized for $111.92 (in_person) with model score 0.87",
+      "weight": 1.0,
+      "source_query": "get_transaction_detail",
+      "created_at": "2016-12-05 03:46:14",
+      "claim": "Flagged transaction 3514948 authorized for $111.92 (in_person) with model score 0.87",
+      "source": "graph",
+      "ref": "get_transaction_detail",
+      "entity_ids": [
+        "3514948"
+      ]
+    },
+    {
+      "evidence_id": "ev-1",
+      "evidence_type": "graph",
+      "title": "velocity_burst_detection",
+      "description": "Velocity burst detected on card C09933-K2: 2 transactions in 24h",
+      "weight": 1.0,
+      "source_query": "velocity_burst_detection",
+      "created_at": "2016-12-05 03:46:14",
+      "claim": "Velocity burst detected on card C09933-K2: 2 transactions in 24h",
+      "source": "graph",
+      "ref": "velocity_burst_detection",
+      "entity_ids": [
+        "C09933-K2"
+      ]
+    },
+    {
+      "evidence_id": "ev-2",
+      "evidence_type": "graph",
+      "title": "prior_case_similarity",
+      "description": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+      "weight": 1.0,
+      "source_query": "prior_case_similarity",
+      "created_at": "2016-12-05 03:46:14",
+      "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+      "source": "graph",
+      "ref": "prior_case_similarity",
+      "entity_ids": [
+        "CC-0141"
+      ]
+    },
+    {
+      "evidence_id": "ev-3",
+      "evidence_type": "graph",
+      "title": "prior_case_similarity",
+      "description": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+      "weight": 1.0,
+      "source_query": "prior_case_similarity",
+      "created_at": "2016-12-05 03:46:14",
+      "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+      "source": "graph",
+      "ref": "prior_case_similarity",
+      "entity_ids": [
+        "CC-0002"
+      ]
+    },
+    {
+      "evidence_id": "ev-4",
+      "evidence_type": "document",
+      "title": "PAT_OUT_REGION",
+      "description": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+      "weight": 1.0,
+      "source_query": "PAT_OUT_REGION",
+      "created_at": "2016-12-05 03:46:14",
+      "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+      "source": "document",
+      "ref": "PAT_OUT_REGION",
+      "entity_ids": []
+    },
+    {
+      "evidence_id": "ev-5",
+      "evidence_type": "document",
+      "title": "R6",
+      "description": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+      "weight": 1.0,
+      "source_query": "R6",
+      "created_at": "2016-12-05 03:46:14",
+      "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+      "source": "document",
+      "ref": "R6",
+      "entity_ids": []
+    },
+    {
+      "evidence_id": "ev-6",
+      "evidence_type": "document",
+      "title": "R3",
+      "description": "Policy constraint R3: Rule R3: Customer Confirms Transaction",
+      "weight": 1.0,
+      "source_query": "R3",
+      "created_at": "2016-12-05 03:46:14",
+      "claim": "Policy constraint R3: Rule R3: Customer Confirms Transaction",
+      "source": "document",
+      "ref": "R3",
+      "entity_ids": []
+    }
+  ],
+  "risk_history": [
+    {
+      "timestamp": "2016-12-05 03:46:14",
+      "stage": "initial_triage",
+      "risk_score": 0.87,
+      "confidence": 0.5,
+      "note": "Initial bank model risk score trigger"
+    },
+    {
+      "timestamp": "2026-09-24T17:46:49.731413",
+      "stage": "agent_investigation_closed",
+      "risk_score": 0.87,
+      "confidence": 0.04,
+      "note": "Completed GraphRAG investigation. Verdict: LEGITIMATE"
+    }
+  ],
+  "case": {
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.04,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3514948 authorized for $111.92 (in_person) with model score 0.87",
+        "source": "graph",
+        "ref": "get_transaction_detail",
+        "entity_ids": [
+          "3514948"
+        ]
+      },
+      {
+        "claim": "Velocity burst detected on card C09933-K2: 2 transactions in 24h",
+        "source": "graph",
+        "ref": "velocity_burst_detection",
+        "entity_ids": [
+          "C09933-K2"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0141"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0002"
+        ]
+      },
+      {
+        "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+        "source": "document",
+        "ref": "PAT_OUT_REGION",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+        "source": "document",
+        "ref": "R6",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint R3: Rule R3: Customer Confirms Transaction",
+        "source": "document",
+        "ref": "R3",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0141",
+      "CC-0002"
+    ],
+    "summary": "Investigation into alert on card C09933-K2 resolved as legitimate activity under policy rule R3. Customer validation confirmed charge validity. Alert closed without customer disruption.",
+    "written_to_graph": true,
+    "graph_case_id": "CASE-2016-007"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 4,
+      "assumed_response": "Customer confirms they legitimately made the purchase while traveling"
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "R1: Single signal with fraud probability below 0.70; verify before blocking"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Section 3a: Internal fraud case record opened as probability >= 0.30"
+      }
+    ],
+    "final": [
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "R3: Customer confirmed transaction validity; cleared without customer disruption"
+      }
+    ],
+    "what_changed": "Customer confirmation lowered assessed fraud probability from 0.35 to 0.04, enabling safe case closure under Rule R3."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy Section 3a: Activity cleared as legitimate or below suspicion threshold. No SAR warranted.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0.0,
+    "activity_dates": []
+  },
+  "stop_reason": "Customer confirmation confirmed legitimate authorization; case safely resolved.",
+  "tool_calls": 7,
+  "tokens": 4250,
+  "latency_s": 0.01,
+  "assigned_analyst": "Autonomous GraphRAG Agent (L1-Triage)"
+}

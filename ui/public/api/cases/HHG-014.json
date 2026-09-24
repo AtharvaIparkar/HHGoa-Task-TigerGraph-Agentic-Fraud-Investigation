@@ -1,0 +1,320 @@
+{
+  "case_id": "HHG-014",
+  "title": "Investigation Alert: analyst_request (HHG-014)",
+  "description": "Analyst request: several cards this month show purchases from the same unusual device profile. Review transaction 3478561 on card C13487-K1 and look for related activity.",
+  "status": "closed",
+  "priority": "critical",
+  "decision": "fraud",
+  "verdict": "fraud",
+  "risk_score": 0.95,
+  "confidence_score": 0.95,
+  "created_at": "2016-11-22 20:11:00",
+  "updated_at": "2026-09-24T17:46:49.735738",
+  "trigger_source": "analyst_request",
+  "trigger_type": "analyst_request",
+  "trigger_text": "Analyst request: several cards this month show purchases from the same unusual device profile. Review transaction 3478561 on card C13487-K1 and look for related activity.",
+  "flagged_txn_id": "3478561",
+  "card_id": "C13487-K1",
+  "customer_id": "C13487",
+  "subject_customer_ids": [
+    "C13487"
+  ],
+  "exposure_usd": 77.07,
+  "pattern": "card_not_present_new_device",
+  "sar_required": true,
+  "tags": [
+    "card_not_present_new_device",
+    "analyst_request"
+  ],
+  "evidence_items": [
+    {
+      "evidence_id": "ev-0",
+      "evidence_type": "graph",
+      "title": "get_transaction_detail",
+      "description": "Flagged transaction 3478561 authorized for $77.07 (in_person) with model score 0.61",
+      "weight": 1.0,
+      "source_query": "get_transaction_detail",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Flagged transaction 3478561 authorized for $77.07 (in_person) with model score 0.61",
+      "source": "graph",
+      "ref": "get_transaction_detail",
+      "entity_ids": [
+        "3478561"
+      ]
+    },
+    {
+      "evidence_id": "ev-1",
+      "evidence_type": "graph",
+      "title": "velocity_burst_detection",
+      "description": "Velocity burst detected on card C13487-K1: 2 transactions in 24h",
+      "weight": 1.0,
+      "source_query": "velocity_burst_detection",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Velocity burst detected on card C13487-K1: 2 transactions in 24h",
+      "source": "graph",
+      "ref": "velocity_burst_detection",
+      "entity_ids": [
+        "C13487-K1"
+      ]
+    },
+    {
+      "evidence_id": "ev-2",
+      "evidence_type": "graph",
+      "title": "shared_attribute_ring_detection",
+      "description": "Graph ring detected: Device profile DEV-889104b is shared across 3 customers (C12382, C08771, C02194)",
+      "weight": 1.0,
+      "source_query": "shared_attribute_ring_detection",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Graph ring detected: Device profile DEV-889104b is shared across 3 customers (C12382, C08771, C02194)",
+      "source": "graph",
+      "ref": "shared_attribute_ring_detection",
+      "entity_ids": [
+        "DEV-889104b",
+        "C12382-K1",
+        "C08771-K1",
+        "C02194-K2"
+      ]
+    },
+    {
+      "evidence_id": "ev-3",
+      "evidence_type": "graph",
+      "title": "prior_case_similarity",
+      "description": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+      "weight": 1.0,
+      "source_query": "prior_case_similarity",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+      "source": "graph",
+      "ref": "prior_case_similarity",
+      "entity_ids": [
+        "CC-0141"
+      ]
+    },
+    {
+      "evidence_id": "ev-4",
+      "evidence_type": "graph",
+      "title": "prior_case_similarity",
+      "description": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+      "weight": 1.0,
+      "source_query": "prior_case_similarity",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+      "source": "graph",
+      "ref": "prior_case_similarity",
+      "entity_ids": [
+        "CC-0002"
+      ]
+    },
+    {
+      "evidence_id": "ev-5",
+      "evidence_type": "document",
+      "title": "R6",
+      "description": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+      "weight": 1.0,
+      "source_query": "R6",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+      "source": "document",
+      "ref": "R6",
+      "entity_ids": []
+    },
+    {
+      "evidence_id": "ev-6",
+      "evidence_type": "document",
+      "title": "R2",
+      "description": "Policy constraint R2: Rule R2: Customer Denies Transaction",
+      "weight": 1.0,
+      "source_query": "R2",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Policy constraint R2: Rule R2: Customer Denies Transaction",
+      "source": "document",
+      "ref": "R2",
+      "entity_ids": []
+    },
+    {
+      "evidence_id": "ev-7",
+      "evidence_type": "document",
+      "title": "PAT_OUT_REGION",
+      "description": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+      "weight": 1.0,
+      "source_query": "PAT_OUT_REGION",
+      "created_at": "2016-11-22 20:11:00",
+      "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+      "source": "document",
+      "ref": "PAT_OUT_REGION",
+      "entity_ids": []
+    }
+  ],
+  "risk_history": [
+    {
+      "timestamp": "2016-11-22 20:11:00",
+      "stage": "initial_triage",
+      "risk_score": 0.95,
+      "confidence": 0.5,
+      "note": "Initial bank model risk score trigger"
+    },
+    {
+      "timestamp": "2026-09-24T17:46:49.735782",
+      "stage": "agent_investigation_closed",
+      "risk_score": 0.95,
+      "confidence": 0.95,
+      "note": "Completed GraphRAG investigation. Verdict: FRAUD"
+    }
+  ],
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.95,
+    "pattern": "card_not_present_new_device",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3478561"
+    ],
+    "first_suspicious_txn_id": "3478561",
+    "connected_card_ids": [
+      "C12382-K1",
+      "C08771-K1",
+      "C02194-K2"
+    ],
+    "connected_device_profiles": [
+      "DEV-889104b"
+    ],
+    "exposure_usd": 77.07,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3478561 authorized for $77.07 (in_person) with model score 0.61",
+        "source": "graph",
+        "ref": "get_transaction_detail",
+        "entity_ids": [
+          "3478561"
+        ]
+      },
+      {
+        "claim": "Velocity burst detected on card C13487-K1: 2 transactions in 24h",
+        "source": "graph",
+        "ref": "velocity_burst_detection",
+        "entity_ids": [
+          "C13487-K1"
+        ]
+      },
+      {
+        "claim": "Graph ring detected: Device profile DEV-889104b is shared across 3 customers (C12382, C08771, C02194)",
+        "source": "graph",
+        "ref": "shared_attribute_ring_detection",
+        "entity_ids": [
+          "DEV-889104b",
+          "C12382-K1",
+          "C08771-K1",
+          "C02194-K2"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0141"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0002"
+        ]
+      },
+      {
+        "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+        "source": "document",
+        "ref": "R6",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint R2: Rule R2: Customer Denies Transaction",
+        "source": "document",
+        "ref": "R2",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+        "source": "document",
+        "ref": "PAT_OUT_REGION",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0141",
+      "CC-0002"
+    ],
+    "summary": "Investigation confirmed card not present new device on card C13487-K1 (Customer C13487). Flagged transaction 3478561 ($77.07) was verified as unauthorized under policy rule R2. Consistent with prior pattern seen in CC-0141. Card blocked to mitigate further exposure.",
+    "written_to_graph": true,
+    "graph_case_id": "CASE-2016-014"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: Substantial risk evidence or suspicious syndication observed"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Section 3a: Internal case opened with evidence attached"
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Section 3a & R6: Shared device syndication / high exposure requires regulatory SAR"
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: Confirmed unauthorized activity. Exposure $77.07 routed to L1"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: Write full investigation record into graph"
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "R2 & R6: Confirmed unauthorized use linked to shared origin or exceeding $1,000"
+      },
+      {
+        "action": "MONITOR_CONNECTED_CARDS",
+        "route": "auto",
+        "reason": "R6: Shared device profile links to connected cards ['C12382-K1', 'C08771-K1', 'C02194-K2']"
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": true,
+    "reason": "Rule R6 & Section 3a: Confirmed unauthorized activity connects to shared device/card ring.",
+    "narrative": "This Suspicious Activity Report documents unauthorized financial transactions identified on account C13487 associated with payment card C13487-K1. On 2016-11-22, transaction 3478561 was initiated through the in_person channel under suspicious parameters matching the card not present new device typology. Total unauthorized exposure across the incident is $77.07 USD. Graph expansion identified connectivity to associated card(s) C12382-K1, C08771-K1, C02194-K2 via shared device profile DEV-889104b. Institutional investigation determined the activity was inconsistent with the cardholder's established transactional and regional baseline. In accordance with bank fraud policy, the card was blocked and scheduled for reissue, associated accounts were placed under elevated monitoring, and the transaction was declined to prevent further loss. This filing is submitted pursuant to FinCEN suspicious activity reporting mandates regarding cyber-enabled payment fraud.",
+    "subjects": [
+      "C13487",
+      "C13487-K1",
+      "C12382-K1",
+      "C08771-K1",
+      "C02194-K2",
+      "DEV-889104b"
+    ],
+    "total_amount_usd": 77.07,
+    "activity_dates": [
+      "2016-11-22",
+      "2016-11-22"
+    ]
+  },
+  "stop_reason": "Customer denial settled the verdict; card blocked and exposure bounded.",
+  "tool_calls": 7,
+  "tokens": 4250,
+  "latency_s": 0.01,
+  "assigned_analyst": "Autonomous GraphRAG Agent (L1-Triage)"
+}

@@ -1,0 +1,346 @@
+{
+  "case_id": "HHG-013",
+  "subgraph": {
+    "case_id": "HHG-013",
+    "nodes": [
+      {
+        "id": "txn_3526826",
+        "label": "Txn 3526826",
+        "type": "transaction",
+        "status": "suspicious",
+        "details": {
+          "amount_usd": 77.07,
+          "risk_score": 0.76,
+          "is_flagged": true,
+          "verdict": "legitimate"
+        }
+      },
+      {
+        "id": "cust_C07671",
+        "label": "Customer C07671",
+        "type": "customer",
+        "status": "subject",
+        "details": {
+          "customer_id": "C07671"
+        }
+      },
+      {
+        "id": "card_C07671-K2",
+        "label": "Card C07671-K2",
+        "type": "card",
+        "status": "active",
+        "details": {
+          "card_id": "C07671-K2"
+        }
+      },
+      {
+        "id": "dev_fingerprint_HHG-013",
+        "label": "Device Profile #01",
+        "type": "device",
+        "status": "verified",
+        "details": {
+          "fingerprint": "Clean browser canvas"
+        }
+      },
+      {
+        "id": "prior_CC-0141",
+        "label": "Precedent CC-0141",
+        "type": "prior_case",
+        "status": "cited",
+        "details": {
+          "precedent_id": "CC-0141",
+          "similarity": 0.84
+        }
+      },
+      {
+        "id": "prior_CC-0002",
+        "label": "Precedent CC-0002",
+        "type": "prior_case",
+        "status": "cited",
+        "details": {
+          "precedent_id": "CC-0002",
+          "similarity": 0.84
+        }
+      }
+    ],
+    "links": [
+      {
+        "id": "txn_3526826->cust_C07671",
+        "source": "txn_3526826",
+        "target": "cust_C07671",
+        "type": "PERFORMED_BY",
+        "weight": 1.0,
+        "is_primary": true
+      },
+      {
+        "id": "txn_3526826->card_C07671-K2",
+        "source": "txn_3526826",
+        "target": "card_C07671-K2",
+        "type": "PAID_WITH",
+        "weight": 1.0,
+        "is_primary": true
+      },
+      {
+        "id": "cust_C07671->card_C07671-K2",
+        "source": "cust_C07671",
+        "target": "card_C07671-K2",
+        "type": "HOLDS_CARD",
+        "weight": 1.0,
+        "is_primary": false
+      },
+      {
+        "id": "txn_3526826->dev_fingerprint_HHG-013",
+        "source": "txn_3526826",
+        "target": "dev_fingerprint_HHG-013",
+        "type": "USED_DEVICE",
+        "weight": 0.8,
+        "is_primary": false
+      },
+      {
+        "id": "txn_3526826->prior_CC-0141",
+        "source": "txn_3526826",
+        "target": "prior_CC-0141",
+        "type": "CASE_SIMILAR_TO",
+        "weight": 0.9,
+        "is_primary": false
+      },
+      {
+        "id": "txn_3526826->prior_CC-0002",
+        "source": "txn_3526826",
+        "target": "prior_CC-0002",
+        "type": "CASE_SIMILAR_TO",
+        "weight": 0.9,
+        "is_primary": false
+      }
+    ],
+    "vertices": [
+      {
+        "type": "transaction",
+        "id": "txn_3526826",
+        "attributes": {
+          "id": "txn_3526826",
+          "label": "Txn 3526826",
+          "type": "transaction",
+          "status": "suspicious",
+          "details": {
+            "amount_usd": 77.07,
+            "risk_score": 0.76,
+            "is_flagged": true,
+            "verdict": "legitimate"
+          }
+        }
+      },
+      {
+        "type": "customer",
+        "id": "cust_C07671",
+        "attributes": {
+          "id": "cust_C07671",
+          "label": "Customer C07671",
+          "type": "customer",
+          "status": "subject",
+          "details": {
+            "customer_id": "C07671"
+          }
+        }
+      },
+      {
+        "type": "card",
+        "id": "card_C07671-K2",
+        "attributes": {
+          "id": "card_C07671-K2",
+          "label": "Card C07671-K2",
+          "type": "card",
+          "status": "active",
+          "details": {
+            "card_id": "C07671-K2"
+          }
+        }
+      },
+      {
+        "type": "device",
+        "id": "dev_fingerprint_HHG-013",
+        "attributes": {
+          "id": "dev_fingerprint_HHG-013",
+          "label": "Device Profile #01",
+          "type": "device",
+          "status": "verified",
+          "details": {
+            "fingerprint": "Clean browser canvas"
+          }
+        }
+      },
+      {
+        "type": "prior_case",
+        "id": "prior_CC-0141",
+        "attributes": {
+          "id": "prior_CC-0141",
+          "label": "Precedent CC-0141",
+          "type": "prior_case",
+          "status": "cited",
+          "details": {
+            "precedent_id": "CC-0141",
+            "similarity": 0.84
+          }
+        }
+      },
+      {
+        "type": "prior_case",
+        "id": "prior_CC-0002",
+        "attributes": {
+          "id": "prior_CC-0002",
+          "label": "Precedent CC-0002",
+          "type": "prior_case",
+          "status": "cited",
+          "details": {
+            "precedent_id": "CC-0002",
+            "similarity": 0.84
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "type": "PERFORMED_BY",
+        "source": "txn_3526826",
+        "target": "cust_C07671"
+      },
+      {
+        "type": "PAID_WITH",
+        "source": "txn_3526826",
+        "target": "card_C07671-K2"
+      },
+      {
+        "type": "HOLDS_CARD",
+        "source": "cust_C07671",
+        "target": "card_C07671-K2"
+      },
+      {
+        "type": "USED_DEVICE",
+        "source": "txn_3526826",
+        "target": "dev_fingerprint_HHG-013"
+      },
+      {
+        "type": "CASE_SIMILAR_TO",
+        "source": "txn_3526826",
+        "target": "prior_CC-0141"
+      },
+      {
+        "type": "CASE_SIMILAR_TO",
+        "source": "txn_3526826",
+        "target": "prior_CC-0002"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "txn_3526826",
+      "label": "Txn 3526826",
+      "type": "transaction",
+      "status": "suspicious",
+      "details": {
+        "amount_usd": 77.07,
+        "risk_score": 0.76,
+        "is_flagged": true,
+        "verdict": "legitimate"
+      }
+    },
+    {
+      "id": "cust_C07671",
+      "label": "Customer C07671",
+      "type": "customer",
+      "status": "subject",
+      "details": {
+        "customer_id": "C07671"
+      }
+    },
+    {
+      "id": "card_C07671-K2",
+      "label": "Card C07671-K2",
+      "type": "card",
+      "status": "active",
+      "details": {
+        "card_id": "C07671-K2"
+      }
+    },
+    {
+      "id": "dev_fingerprint_HHG-013",
+      "label": "Device Profile #01",
+      "type": "device",
+      "status": "verified",
+      "details": {
+        "fingerprint": "Clean browser canvas"
+      }
+    },
+    {
+      "id": "prior_CC-0141",
+      "label": "Precedent CC-0141",
+      "type": "prior_case",
+      "status": "cited",
+      "details": {
+        "precedent_id": "CC-0141",
+        "similarity": 0.84
+      }
+    },
+    {
+      "id": "prior_CC-0002",
+      "label": "Precedent CC-0002",
+      "type": "prior_case",
+      "status": "cited",
+      "details": {
+        "precedent_id": "CC-0002",
+        "similarity": 0.84
+      }
+    }
+  ],
+  "links": [
+    {
+      "id": "txn_3526826->cust_C07671",
+      "source": "txn_3526826",
+      "target": "cust_C07671",
+      "type": "PERFORMED_BY",
+      "weight": 1.0,
+      "is_primary": true
+    },
+    {
+      "id": "txn_3526826->card_C07671-K2",
+      "source": "txn_3526826",
+      "target": "card_C07671-K2",
+      "type": "PAID_WITH",
+      "weight": 1.0,
+      "is_primary": true
+    },
+    {
+      "id": "cust_C07671->card_C07671-K2",
+      "source": "cust_C07671",
+      "target": "card_C07671-K2",
+      "type": "HOLDS_CARD",
+      "weight": 1.0,
+      "is_primary": false
+    },
+    {
+      "id": "txn_3526826->dev_fingerprint_HHG-013",
+      "source": "txn_3526826",
+      "target": "dev_fingerprint_HHG-013",
+      "type": "USED_DEVICE",
+      "weight": 0.8,
+      "is_primary": false
+    },
+    {
+      "id": "txn_3526826->prior_CC-0141",
+      "source": "txn_3526826",
+      "target": "prior_CC-0141",
+      "type": "CASE_SIMILAR_TO",
+      "weight": 0.9,
+      "is_primary": false
+    },
+    {
+      "id": "txn_3526826->prior_CC-0002",
+      "source": "txn_3526826",
+      "target": "prior_CC-0002",
+      "type": "CASE_SIMILAR_TO",
+      "weight": 0.9,
+      "is_primary": false
+    }
+  ],
+  "source": "tigergraph_evidence_synthesizer"
+}

@@ -352,7 +352,7 @@ def _build_subgraph_for_case(case: dict) -> dict:
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
-
+@router.get("", summary="List all fraud cases", include_in_schema=False)
 @router.get("/", summary="List all fraud cases")
 async def list_cases(
     status: Optional[str] = Query(None, description="Filter by status"),

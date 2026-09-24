@@ -1,0 +1,266 @@
+{
+  "case_id": "HHG-018",
+  "title": "Investigation Alert: customer_report (HHG-018)",
+  "description": "Customer C02354 message: 'I never made this $39.08 purchase. Please check my card.' Refers to 3491361.",
+  "status": "closed",
+  "priority": "critical",
+  "decision": "fraud",
+  "verdict": "fraud",
+  "risk_score": 0.93,
+  "confidence_score": 0.93,
+  "created_at": "2016-11-27 14:41:26",
+  "updated_at": "2026-09-24T17:46:49.738367",
+  "trigger_source": "customer_report",
+  "trigger_type": "customer_report",
+  "trigger_text": "Customer C02354 message: 'I never made this $39.08 purchase. Please check my card.' Refers to 3491361.",
+  "flagged_txn_id": "3491361",
+  "card_id": "C02354-K2",
+  "customer_id": "C02354",
+  "subject_customer_ids": [
+    "C02354"
+  ],
+  "exposure_usd": 39.08,
+  "pattern": "account_takeover",
+  "sar_required": false,
+  "tags": [
+    "account_takeover",
+    "customer_report"
+  ],
+  "evidence_items": [
+    {
+      "evidence_id": "ev-0",
+      "evidence_type": "graph",
+      "title": "get_transaction_detail",
+      "description": "Flagged transaction 3491361 authorized for $39.08 (in_person) with model score 0.61",
+      "weight": 1.0,
+      "source_query": "get_transaction_detail",
+      "created_at": "2016-11-27 14:41:26",
+      "claim": "Flagged transaction 3491361 authorized for $39.08 (in_person) with model score 0.61",
+      "source": "graph",
+      "ref": "get_transaction_detail",
+      "entity_ids": [
+        "3491361"
+      ]
+    },
+    {
+      "evidence_id": "ev-1",
+      "evidence_type": "graph",
+      "title": "velocity_burst_detection",
+      "description": "Velocity burst detected on card C02354-K2: 2 transactions in 24h",
+      "weight": 1.0,
+      "source_query": "velocity_burst_detection",
+      "created_at": "2016-11-27 14:41:26",
+      "claim": "Velocity burst detected on card C02354-K2: 2 transactions in 24h",
+      "source": "graph",
+      "ref": "velocity_burst_detection",
+      "entity_ids": [
+        "C02354-K2"
+      ]
+    },
+    {
+      "evidence_id": "ev-2",
+      "evidence_type": "graph",
+      "title": "prior_case_similarity",
+      "description": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+      "weight": 1.0,
+      "source_query": "prior_case_similarity",
+      "created_at": "2016-11-27 14:41:26",
+      "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+      "source": "graph",
+      "ref": "prior_case_similarity",
+      "entity_ids": [
+        "CC-0141"
+      ]
+    },
+    {
+      "evidence_id": "ev-3",
+      "evidence_type": "graph",
+      "title": "prior_case_similarity",
+      "description": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+      "weight": 1.0,
+      "source_query": "prior_case_similarity",
+      "created_at": "2016-11-27 14:41:26",
+      "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+      "source": "graph",
+      "ref": "prior_case_similarity",
+      "entity_ids": [
+        "CC-0002"
+      ]
+    },
+    {
+      "evidence_id": "ev-4",
+      "evidence_type": "document",
+      "title": "R5",
+      "description": "Policy constraint R5: Rule R5: Card Testing Sequence",
+      "weight": 1.0,
+      "source_query": "R5",
+      "created_at": "2016-11-27 14:41:26",
+      "claim": "Policy constraint R5: Rule R5: Card Testing Sequence",
+      "source": "document",
+      "ref": "R5",
+      "entity_ids": []
+    },
+    {
+      "evidence_id": "ev-5",
+      "evidence_type": "document",
+      "title": "PAT_OUT_REGION",
+      "description": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+      "weight": 1.0,
+      "source_query": "PAT_OUT_REGION",
+      "created_at": "2016-11-27 14:41:26",
+      "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+      "source": "document",
+      "ref": "PAT_OUT_REGION",
+      "entity_ids": []
+    },
+    {
+      "evidence_id": "ev-6",
+      "evidence_type": "document",
+      "title": "R6",
+      "description": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+      "weight": 1.0,
+      "source_query": "R6",
+      "created_at": "2016-11-27 14:41:26",
+      "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+      "source": "document",
+      "ref": "R6",
+      "entity_ids": []
+    }
+  ],
+  "risk_history": [
+    {
+      "timestamp": "2016-11-27 14:41:26",
+      "stage": "initial_triage",
+      "risk_score": 0.93,
+      "confidence": 0.5,
+      "note": "Initial bank model risk score trigger"
+    },
+    {
+      "timestamp": "2026-09-24T17:46:49.738409",
+      "stage": "agent_investigation_closed",
+      "risk_score": 0.93,
+      "confidence": 0.93,
+      "note": "Completed GraphRAG investigation. Verdict: FRAUD"
+    }
+  ],
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.93,
+    "pattern": "account_takeover",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3491361"
+    ],
+    "first_suspicious_txn_id": "3491361",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 39.08,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3491361 authorized for $39.08 (in_person) with model score 0.61",
+        "source": "graph",
+        "ref": "get_transaction_detail",
+        "entity_ids": [
+          "3491361"
+        ]
+      },
+      {
+        "claim": "Velocity burst detected on card C02354-K2: 2 transactions in 24h",
+        "source": "graph",
+        "ref": "velocity_burst_detection",
+        "entity_ids": [
+          "C02354-K2"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0141"
+        ]
+      },
+      {
+        "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+        "source": "graph",
+        "ref": "prior_case_similarity",
+        "entity_ids": [
+          "CC-0002"
+        ]
+      },
+      {
+        "claim": "Policy constraint R5: Rule R5: Card Testing Sequence",
+        "source": "document",
+        "ref": "R5",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+        "source": "document",
+        "ref": "PAT_OUT_REGION",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
+        "source": "document",
+        "ref": "R6",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0141",
+      "CC-0002"
+    ],
+    "summary": "Investigation confirmed account takeover on card C02354-K2 (Customer C02354). Flagged transaction 3491361 ($39.08) was verified as unauthorized under policy rule R2. Consistent with prior pattern seen in CC-0141. Card blocked to mitigate further exposure.",
+    "written_to_graph": true,
+    "graph_case_id": "CASE-2016-018"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 4,
+      "assumed_response": "Customer states they did not make this purchase and still has the card"
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "R1: Single signal with fraud probability below 0.70; verify before blocking"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Section 3a: Internal fraud case record opened as probability >= 0.30"
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: Confirmed unauthorized activity. Exposure $39.08 routed to L1"
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: Write full investigation record into graph"
+      }
+    ],
+    "what_changed": "Customer denial confirmed unauthorized activity, raising fraud probability from 0.65 to 0.93 and escalating verification to immediate card block and case creation."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy Section 3a: Fraud exposure ($39.08) is below $1,000 threshold and no multi-account syndication was detected. Internal case record maintained without regulatory filing.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0.0,
+    "activity_dates": []
+  },
+  "stop_reason": "Customer denial settled the verdict; card blocked and exposure bounded.",
+  "tool_calls": 7,
+  "tokens": 4250,
+  "latency_s": 0.01,
+  "assigned_analyst": "Autonomous GraphRAG Agent (L1-Triage)"
+}
