@@ -11,8 +11,8 @@ services:
   # ── FastAPI backend ──────────────────────────────────────────────────────────
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api/Dockerfile
     container_name: fraud-api
     ports:
       - "8000:8000"
