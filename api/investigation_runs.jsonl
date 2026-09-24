@@ -1,0 +1,1 @@
+{"run_id": "run-5622a42dae50", "case_id": "HHG-001", "status": "failed", "current_step": "error", "progress_pct": 100, "decision": "pending", "confidence": 0.0, "risk_score": 0.0, "actions_taken": 0, "sar_required": false, "errors": ["'ANTHROPIC_API_KEY'"], "started_at": "2026-09-24T17:27:21.938975", "completed_at": "2026-09-24T17:27:34.841105", "latency_s": 12.89}
