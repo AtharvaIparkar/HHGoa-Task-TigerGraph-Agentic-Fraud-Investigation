@@ -9,7 +9,7 @@ import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   return (
-    <div className="dark min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans">
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>

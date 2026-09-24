@@ -8,7 +8,11 @@ import {
   RefreshCw,
   Share2,
   Check,
-  ChevronDown
+  ChevronDown,
+  ExternalLink,
+  Shield,
+  Layers,
+  Activity
 } from "lucide-react";
 import { InvestigationGraph, GraphNode, GraphLink } from "../components/InvestigationGraph";
 
@@ -77,8 +81,8 @@ export const CaseDetailPage: React.FC = () => {
         pattern: isRing ? "device_sharing_ring" : isHighSpend ? "card_not_present_fraud" : "single_merchant_low_risk",
         exposure_usd: isHighSpend ? 1000.03 : isRing ? 77.07 : 0.0,
         evidence: [
-          { claim: `Transaction authorized for $${isHighSpend ? "1,000.03" : "77.07"}`, source: "graph", ref: "get_transaction_detail", entity_ids: [isHighSpend ? "3506725" : isRing ? "3478561" : "3514030"] },
-          { claim: isRing ? "Device profile shared across 3 accounts" : "Velocity within expected customer baseline", source: "graph", ref: "shared_attribute_ring_detection", entity_ids: ["DEV-889104b"] },
+          { claim: `Transaction authorized for $${isHighSpend ? "1,000.03" : "77.07"} via payment gateway`, source: "graph", ref: "get_transaction_detail", entity_ids: [isHighSpend ? "3506725" : isRing ? "3478561" : "3514030"] },
+          { claim: isRing ? "Device profile shared across 3 accounts" : "Transaction velocity within expected customer baseline", source: "graph", ref: "shared_attribute_ring_detection", entity_ids: ["DEV-889104b"] },
           { claim: "Prior institutional case CC-0141 confirmed pattern match", source: "graph", ref: "prior_case_similarity", entity_ids: ["CC-0141"] },
         ],
         similar_prior_cases: ["CC-0141"],
@@ -204,8 +208,8 @@ export const CaseDetailPage: React.FC = () => {
 
   if (loading || !caseData) {
     return (
-      <div className="py-24 text-center text-zinc-500 font-mono text-xs flex items-center justify-center gap-2">
-        <RefreshCw className="w-4 h-4 animate-spin text-zinc-400" />
+      <div className="py-24 text-center text-slate-400 font-mono text-xs flex items-center justify-center gap-2">
+        <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
         <span>Loading case dossier...</span>
       </div>
     );
@@ -219,35 +223,36 @@ export const CaseDetailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* ── Case Header ──────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-[#1f2026] gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-200 gap-4">
         <div className="flex items-center gap-3">
           <Link
             to="/cases"
-            className="p-1.5 rounded bg-[#14151a] hover:bg-[#1a1c23] border border-[#222329] text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="p-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-800 transition-colors shadow-sm"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-lg font-semibold text-zinc-100 font-mono">{id}</h1>
+              <h1 className="text-xl font-bold text-slate-900 font-mono">{id}</h1>
               <span
-                className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${
+                className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${
                   verdict === "fraud"
-                    ? "bg-rose-950/40 text-rose-300 border-rose-900/60"
+                    ? "bg-rose-50 text-rose-700 border-rose-200"
                     : verdict === "legitimate"
-                    ? "bg-emerald-950/40 text-emerald-300 border-emerald-900/60"
-                    : "bg-amber-950/40 text-amber-300 border-amber-900/60"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200"
                 }`}
               >
-                {verdict}
+                {verdict.toUpperCase()}
               </span>
-              <span className="text-xs text-zinc-400 font-mono">
-                Txn {caseData.flagged_txn_id}
+              <span className="text-xs text-slate-500 font-mono">
+                Txn #{caseData.flagged_txn_id}
               </span>
             </div>
-            <div className="text-xs text-zinc-400 font-mono mt-0.5">
-              Customer {caseData.customer_id} · Card {caseData.card_id} · Exposure{" "}
-              <span className="text-zinc-200 font-semibold">
+            <div className="text-xs text-slate-500 mt-1 font-mono">
+              Customer: <span className="text-slate-800 font-semibold">{caseData.customer_id}</span> · Card:{" "}
+              <span className="text-slate-800 font-semibold">{caseData.card_id}</span> · Exposure:{" "}
+              <span className="text-slate-900 font-bold">
                 ${caseData.exposure_usd?.toFixed(2) || "0.00"}
               </span>
             </div>
@@ -256,16 +261,16 @@ export const CaseDetailPage: React.FC = () => {
 
         {/* Quiet Risk Counters & Controls */}
         <div className="flex items-center gap-3 self-end sm:self-auto font-mono">
-          <div className="text-right px-3 py-1 bg-[#121317] border border-[#222329] rounded text-xs">
-            <span className="text-zinc-400 text-[10px] block">Model Score</span>
-            <span className="text-zinc-200 font-semibold">
-              {(bankScore * 100).toFixed(0)} / 100
+          <div className="text-right px-3.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+            <span className="text-slate-400 text-[10px] uppercase font-bold block">Model Score</span>
+            <span className="text-slate-900 font-bold text-sm">
+              {(bankScore * 100).toFixed(0)} <span className="text-xs text-slate-400 font-normal">/ 100</span>
             </span>
           </div>
 
-          <div className="text-right px-3 py-1 bg-[#121317] border border-[#222329] rounded text-xs">
-            <span className="text-zinc-400 text-[10px] block">Assessed Risk</span>
-            <span className={agentConfidence > 0.7 ? "text-rose-400 font-semibold" : "text-emerald-400 font-semibold"}>
+          <div className="text-right px-3.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+            <span className="text-slate-400 text-[10px] uppercase font-bold block">Assessed Risk</span>
+            <span className={`font-bold text-sm ${agentConfidence > 0.7 ? "text-rose-600" : "text-emerald-600"}`}>
               {(agentConfidence * 100).toFixed(0)}%
             </span>
           </div>
@@ -273,7 +278,7 @@ export const CaseDetailPage: React.FC = () => {
           {sar?.file && (
             <button
               onClick={() => setShowSarModal(true)}
-              className="px-2.5 py-1.5 bg-[#1a1215] hover:bg-[#25171d] text-rose-300 border border-rose-900/50 rounded text-xs transition-colors"
+              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
             >
               SAR Report
             </button>
@@ -282,40 +287,40 @@ export const CaseDetailPage: React.FC = () => {
           <button
             onClick={handleRunInvestigation}
             disabled={isInvestigating}
-            className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-100 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
           >
-            <RefreshCw className={`w-3 h-3 ${isInvestigating ? "animate-spin" : ""}`} />
-            <span>{isInvestigating ? "Running..." : "Re-investigate"}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isInvestigating ? "animate-spin" : ""}`} />
+            <span>{isInvestigating ? "Processing..." : "Re-investigate"}</span>
           </button>
         </div>
       </div>
 
       {/* Confirmation Message */}
       {approvalSuccess && (
-        <div className="p-2.5 bg-[#111c15] border border-emerald-900/50 text-emerald-300 text-xs rounded font-mono flex items-center gap-2">
-          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg font-mono flex items-center gap-2 shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{approvalSuccess}</span>
         </div>
       )}
 
       {/* ── Quiet Simulation Control ─────────────────────────────────── */}
-      <div className="p-3 bg-[#111216] border border-[#1f2026] rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="text-zinc-400">
-          <span className="text-zinc-200 font-medium mr-2">Customer Verification State:</span>
-          Simulate customer response to observe dynamic policy adaptation.
+      <div className="p-3.5 bg-white border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
+        <div className="text-slate-600">
+          <span className="text-slate-900 font-semibold mr-1.5">Interactive Verification Simulation:</span>
+          Observe how the decision and actions dynamically adapt when the customer confirms vs denies the charge.
         </div>
         <div className="flex items-center gap-2 font-mono">
           <button
             onClick={() => handleSimulate("confirm")}
-            className="px-2.5 py-1 rounded bg-[#131a16] hover:bg-[#1a251e] border border-emerald-900/40 text-emerald-300 text-[11px] transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-medium transition-colors"
           >
-            Confirm: "It was me"
+            Simulate Confirmation ("It was me")
           </button>
           <button
             onClick={() => handleSimulate("deny")}
-            className="px-2.5 py-1 rounded bg-[#1e1316] hover:bg-[#2a171d] border border-rose-900/40 text-rose-300 text-[11px] transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 text-xs font-medium transition-colors"
           >
-            Deny: "I never made this"
+            Simulate Denial ("Never made it")
           </button>
         </div>
       </div>
@@ -326,9 +331,9 @@ export const CaseDetailPage: React.FC = () => {
         <div className="lg:col-span-7 space-y-5">
           {/* Entity Topology Graph */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-mono px-1">
-              <span>Entity Relationship Graph</span>
-              <span>{subgraphData?.nodes?.length || 0} entities</span>
+            <div className="flex items-center justify-between text-xs text-slate-500 font-mono px-1">
+              <span className="font-semibold text-slate-700">Entity Topology &amp; Lineage</span>
+              <span>{subgraphData?.nodes?.length || 0} entities loaded</span>
             </div>
 
             {subgraphData && (
@@ -343,9 +348,9 @@ export const CaseDetailPage: React.FC = () => {
           </div>
 
           {/* Evidence Observations */}
-          <div className="bg-[#111216] border border-[#1f2026] rounded-lg p-4 space-y-3">
-            <div className="text-xs font-medium text-zinc-300 font-mono">
-              Graph Evidence &amp; Observations
+          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-sm">
+            <div className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
+              Graph Evidence &amp; Claims
             </div>
 
             <div className="space-y-2">
@@ -363,17 +368,19 @@ export const CaseDetailPage: React.FC = () => {
                         setHighlightedNodes(e.entity_ids || []);
                       }
                     }}
-                    className={`p-2.5 rounded border text-xs cursor-pointer transition-colors ${
+                    className={`p-3 rounded-lg border text-xs cursor-pointer transition-all ${
                       isSelected
-                        ? "bg-[#181920] border-zinc-500 text-zinc-100"
-                        : "bg-[#0e0f13] border-[#1f2026] text-zinc-300 hover:border-zinc-700"
+                        ? "bg-blue-50/70 border-blue-400 text-slate-900 shadow-sm"
+                        : "bg-slate-50 border-slate-200/80 text-slate-700 hover:border-slate-300"
                     }`}
                   >
-                    <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono mb-1">
-                      <span>{e.ref || "OBSERVED"}</span>
-                      {e.entity_ids?.length > 0 && <span>{e.entity_ids.join(", ")}</span>}
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono mb-1">
+                      <span className="font-semibold">{e.ref || "OBSERVED"}</span>
+                      {e.entity_ids?.length > 0 && (
+                        <span className="text-blue-600">{e.entity_ids.join(", ")}</span>
+                      )}
                     </div>
-                    <p className="text-xs text-zinc-300 font-sans leading-normal">{e.claim}</p>
+                    <p className="text-xs text-slate-800 font-sans leading-relaxed">{e.claim}</p>
                   </div>
                 );
               })}
@@ -384,27 +391,27 @@ export const CaseDetailPage: React.FC = () => {
         {/* Right Column (5 cols): Next-Best-Actions & Precedents */}
         <div className="lg:col-span-5 space-y-5">
           {/* Next-Best-Actions (Two-State Comparison) */}
-          <div className="bg-[#111216] border border-[#1f2026] rounded-lg p-4 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1f2026] pb-2 text-xs font-mono text-zinc-400">
-              <span className="font-semibold text-zinc-200">Recommended Next-Best-Actions</span>
-              <span>Policy Engine</span>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 text-xs font-mono text-slate-500">
+              <span className="font-bold text-slate-900 text-xs">Recommended Next-Best-Actions</span>
+              <span>Policy v1.0</span>
             </div>
 
             {/* Initial */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] uppercase font-mono text-zinc-400">
-                1. Initial Assessment
+            <div className="space-y-2">
+              <div className="text-[10px] uppercase font-bold tracking-wider font-mono text-slate-400">
+                1. Initial Recommendation
               </div>
               {nba?.initial?.map((a: any, idx: number) => (
                 <div
                   key={idx}
-                  className="p-2.5 rounded bg-[#0e0f13] border border-[#1f2026] flex items-center justify-between text-xs"
+                  className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs"
                 >
                   <div>
-                    <div className="font-mono text-zinc-200 font-medium">{a.action}</div>
-                    <div className="text-[11px] text-zinc-400 font-sans">{a.reason}</div>
+                    <div className="font-mono text-slate-900 font-semibold">{a.action}</div>
+                    <div className="text-[11px] text-slate-500 font-sans mt-0.5">{a.reason}</div>
                   </div>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
                     {a.route}
                   </span>
                 </div>
@@ -412,22 +419,22 @@ export const CaseDetailPage: React.FC = () => {
             </div>
 
             {/* Post-Verification */}
-            <div className="space-y-1.5 pt-2 border-t border-[#1f2026]">
-              <div className="text-[10px] uppercase font-mono text-zinc-400">
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="text-[10px] uppercase font-bold tracking-wider font-mono text-blue-700">
                 2. Post-Verification Action
               </div>
               {nba?.final?.map((a: any, idx: number) => (
                 <div
                   key={idx}
-                  className="p-2.5 rounded bg-[#14151b] border border-[#262730] flex items-center justify-between text-xs"
+                  className="p-3 rounded-lg bg-blue-50/50 border border-blue-200 flex items-center justify-between text-xs"
                 >
                   <div>
-                    <div className="font-mono text-zinc-100 font-medium">{a.action}</div>
-                    <div className="text-[11px] text-zinc-400 font-sans">{a.reason}</div>
+                    <div className="font-mono text-blue-950 font-bold">{a.action}</div>
+                    <div className="text-[11px] text-slate-600 font-sans mt-0.5">{a.reason}</div>
                   </div>
                   <button
                     onClick={() => handleExecuteAction(a.action, a.route)}
-                    className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-[11px] font-mono transition-colors shrink-0 ml-2"
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-mono font-medium transition-colors shrink-0 ml-2 shadow-sm"
                   >
                     {a.route === "auto" ? "Execute" : "Approve"}
                   </button>
@@ -435,8 +442,10 @@ export const CaseDetailPage: React.FC = () => {
               ))}
 
               {nba?.what_changed && (
-                <div className="text-[11px] text-zinc-400 pt-1 leading-relaxed">
-                  <span className="text-zinc-300 font-medium">Rationale: </span>
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 leading-relaxed mt-2">
+                  <span className="text-slate-900 font-semibold font-mono text-[10px] uppercase block">
+                    Decision Delta:
+                  </span>
                   {nba.what_changed}
                 </div>
               )}
@@ -444,59 +453,59 @@ export const CaseDetailPage: React.FC = () => {
           </div>
 
           {/* Historical Precedents */}
-          <div className="bg-[#111216] border border-[#1f2026] rounded-lg p-4 space-y-3">
-            <div className="text-xs font-semibold text-zinc-200 font-mono">
-              Institutional Case Precedents
+          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-sm">
+            <div className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
+              Institutional Precedents (Graph Memory)
             </div>
             <div className="space-y-2">
               {c?.similar_prior_cases?.length ? (
                 c.similar_prior_cases.map((pcId: string) => (
                   <div
                     key={pcId}
-                    className="p-2 rounded bg-[#0e0f13] border border-[#1f2026] flex items-center justify-between text-xs font-mono"
+                    className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs font-mono"
                   >
-                    <span className="text-zinc-200">{pcId}</span>
-                    <span className="text-zinc-400 text-[10px]">sim=0.84</span>
+                    <span className="text-slate-900 font-semibold">{pcId}</span>
+                    <span className="text-slate-500 text-[11px]">Similarity: 0.84</span>
                   </div>
                 ))
               ) : (
-                <div className="text-xs text-zinc-400 font-mono">No prior cases cited</div>
+                <div className="text-xs text-slate-400 font-mono">No prior cases cited</div>
               )}
             </div>
           </div>
 
           {/* Analyst Summary */}
-          <div className="bg-[#111216] border border-[#1f2026] rounded-lg p-4 space-y-2 text-xs">
-            <div className="text-zinc-400 font-mono text-[10px] uppercase">Dossier Summary</div>
-            <p className="text-zinc-300 leading-relaxed font-sans">{c?.summary}</p>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2 text-xs shadow-sm">
+            <div className="text-slate-400 font-mono text-[10px] uppercase font-bold">Investigation Summary</div>
+            <p className="text-slate-700 leading-relaxed font-sans">{c?.summary}</p>
           </div>
         </div>
       </div>
 
-      {/* ── Minimalist SAR Modal ─────────────────────────────────────── */}
+      {/* ── Clean Light SAR Modal ─────────────────────────────────────── */}
       {showSarModal && sar?.file && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-[#121317] border border-[#26272e] rounded-lg max-w-xl w-full p-5 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-[#222329] pb-3">
-              <span className="font-semibold text-sm text-zinc-100 font-mono">
-                Suspicious Activity Report
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <span className="font-bold text-sm text-slate-900 font-mono">
+                Suspicious Activity Report (FinCEN 31 CFR 1020)
               </span>
               <button
                 onClick={() => setShowSarModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 text-base"
+                className="text-slate-400 hover:text-slate-700 text-lg"
               >
                 &times;
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-zinc-300 font-sans">
-              <div className="font-mono text-zinc-400 text-[11px]">
-                Reason: <span className="text-zinc-200">{sar.reason}</span>
+            <div className="space-y-3 text-xs text-slate-600 font-sans">
+              <div className="font-mono text-slate-600 text-[11px]">
+                Filing Basis: <span className="text-slate-900 font-semibold">{sar.reason}</span>
               </div>
-              <div className="p-3 bg-[#0c0d11] rounded border border-[#1f2026] text-xs font-mono">
-                Total Exposure: ${sar.total_amount_usd?.toFixed(2)}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono">
+                Total Flagged Exposure: <strong className="text-slate-900">${sar.total_amount_usd?.toFixed(2)}</strong>
               </div>
-              <div className="p-3 bg-[#0c0d11] rounded border border-[#1f2026] text-xs leading-relaxed">
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs leading-relaxed text-slate-700">
                 {sar.narrative}
               </div>
             </div>
@@ -504,23 +513,23 @@ export const CaseDetailPage: React.FC = () => {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setShowSarModal(false)}
-                className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs font-mono"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold font-mono"
               >
-                Close
+                Close Report
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Minimalist Action Sign-off Modal ─────────────────────────── */}
+      {/* ── Action Sign-off Modal ─────────────────────────────────── */}
       {approvalModalAction && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-[#121317] border border-[#26272e] rounded-lg max-w-md w-full p-5 space-y-4 shadow-xl">
-            <div className="font-semibold text-sm text-zinc-100 font-mono">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="font-bold text-sm text-slate-900 font-mono">
               Action Approval Required: {approvalModalAction}
             </div>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-slate-600">
               Enter an Approval Event ID to authorize this privileged policy action.
             </p>
             <div>
@@ -529,19 +538,19 @@ export const CaseDetailPage: React.FC = () => {
                 placeholder="e.g. APP-EVT-9041"
                 value={approvalIdInput}
                 onChange={(e) => setApprovalIdInput(e.target.value)}
-                className="w-full px-3 py-1.5 bg-[#0c0d11] border border-[#26272e] rounded text-xs text-zinc-200 font-mono focus:outline-none focus:border-zinc-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-500"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2 text-xs font-mono">
               <button
                 onClick={() => setApprovalModalAction(null)}
-                className="px-3 py-1.5 bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded"
+                className="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg"
               >
                 Cancel
               </button>
               <button
                 onClick={handleApprove}
-                className="px-3 py-1.5 bg-zinc-200 text-zinc-950 font-semibold rounded hover:bg-white"
+                className="px-4 py-1.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
               >
                 Sign &amp; Execute
               </button>
