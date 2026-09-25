@@ -1,9 +1,11 @@
 {
   "case_id": "HHG-020",
+  "confidence_score": 0.98,
   "case": {
     "status": "closed_legitimate",
     "verdict": "legitimate",
     "fraud_probability": 0.04,
+    "confidence_score": 0.98,
     "pattern": "none",
     "pattern_description": "",
     "affected_txn_ids": [],
@@ -106,5 +108,5 @@
   "stop_reason": "Customer confirmation confirmed legitimate authorization; case safely resolved.",
   "tool_calls": 7,
   "tokens": 4250,
-  "latency_s": 0.0
+  "latency_s": 0.01
 }

@@ -173,11 +173,9 @@ export const DashboardPage: React.FC = () => {
 
         <div className="divide-y divide-slate-100">
           {filtered.map((c) => {
-            // risk_score: Bank ML model heuristic (0–1). NOT a verdict.
-            const bScore =
-              typeof c.risk_score === "number"
-                ? c.risk_score
-                : parseFloat(String(c.risk_score)) || 0;
+            // risk_score: Bank ML model heuristic (0–1). null if trigger was customer_report or analyst_request.
+            const hasModelScore = typeof c.risk_score === "number" && !isNaN(c.risk_score);
+            const bScore = hasModelScore ? (c.risk_score as number) : null;
 
             // confidence_score: Evidence sufficiency gate score from agent (distinct from fraud_probability)
             const aConf =
@@ -215,8 +213,12 @@ export const DashboardPage: React.FC = () => {
 
                 <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-50">
                   <div className="text-left sm:text-right text-[11px] sm:text-xs text-slate-500">
-                    {/* "Model" = bank risk score (heuristic signal, 0–100 scale) */}
-                    Model: <strong className="text-slate-900">{(bScore * 100).toFixed(0)}</strong>
+                    {/* "Model" = bank risk score if present, else show alert origin */}
+                    {bScore !== null ? (
+                      <>Model: <strong className="text-slate-900">{(bScore * 100).toFixed(0)}</strong></>
+                    ) : (
+                      <span className="text-slate-500 uppercase text-[10px] font-semibold">{c.trigger_type?.replace("_", " ") || "ALERT"}</span>
+                    )}
                     {aConf !== null && (
                       <>
                         {" "}· Conf:{" "}

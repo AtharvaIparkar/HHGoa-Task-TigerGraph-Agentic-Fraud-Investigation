@@ -1,9 +1,11 @@
 {
   "case_id": "HHG-007",
+  "confidence_score": 0.98,
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
     "fraud_probability": 0.92,
+    "confidence_score": 0.98,
     "pattern": "out_of_region_use",
     "pattern_description": "",
     "affected_txn_ids": [
@@ -118,5 +120,5 @@
   "stop_reason": "Customer denial settled the verdict; card blocked and exposure bounded.",
   "tool_calls": 7,
   "tokens": 4250,
-  "latency_s": 0.01
+  "latency_s": 0.0
 }

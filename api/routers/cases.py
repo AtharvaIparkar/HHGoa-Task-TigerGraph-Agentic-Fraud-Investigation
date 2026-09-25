@@ -94,17 +94,26 @@ def _load_initial_cases() -> None:
                 exposure = float(c_inner.get("exposure_usd", 0.0))
                 priority = "critical" if exposure >= 1000 or verdict == "fraud" else ("high" if exposure > 300 else "medium")
 
-                risk_score_str = pack_row.get("risk_score") or str(c_inner.get("fraud_probability", 0.5))
-                try:
-                    bank_risk_score = float(risk_score_str)
-                except ValueError:
-                    bank_risk_score = 0.5
+                raw_risk = pack_row.get("risk_score")
+                if raw_risk is not None and str(raw_risk).strip():
+                    try:
+                        bank_risk_score = float(raw_risk)
+                    except ValueError:
+                        bank_risk_score = None
+                else:
+                    # No bank ML score alert — trigger was customer_report or analyst_request
+                    bank_risk_score = None
 
-                # confidence_score = evidence sufficiency gate score (computed during investigation)
-                # It is DISTINCT from fraud_probability (the posterior probabilistic assessment)
-                # If the investigation stored it, use it; otherwise default to risk_score as the initial triage signal
-                raw_confidence = c_inner.get("confidence_score")
-                agent_confidence = float(raw_confidence) if raw_confidence is not None else float(c_inner.get("fraud_probability", bank_risk_score))
+                # confidence_score = evidence sufficiency gate score (0.0 to 1.0)
+                # It measures whether sufficient multi-hop evidence has been gathered to act
+                raw_confidence = c_inner.get("confidence_score") or data.get("confidence_score")
+                if raw_confidence is not None:
+                    agent_confidence = round(float(raw_confidence), 2)
+                else:
+                    ev_list = c_inner.get("evidence", [])
+                    agent_confidence = min(0.98, round(len(ev_list) * 0.15 + 0.30, 2)) if ev_list else 0.70
+
+                fraud_prob = float(c_inner.get("fraud_probability", 0.50))
 
                 record = {
                     "case_id": case_id,
@@ -116,6 +125,7 @@ def _load_initial_cases() -> None:
                     "verdict": verdict,
                     "risk_score": bank_risk_score,
                     "confidence_score": agent_confidence,
+                    "fraud_probability": fraud_prob,
                     "created_at": pack_row.get("opened_at", datetime.utcnow().isoformat()),
                     "updated_at": datetime.utcnow().isoformat(),
                     "trigger_source": pack_row.get("trigger_type", "real-time model"),
@@ -151,14 +161,14 @@ def _load_initial_cases() -> None:
                             "stage": "initial_triage",
                             "risk_score": bank_risk_score,
                             "confidence": 0.50,
-                            "note": "Initial bank model risk score trigger",
+                            "note": f"Initial bank model risk score: {bank_risk_score:.2f}" if bank_risk_score is not None else f"Initial alert trigger: {pack_row.get('trigger_type', 'Flagged Activity')}",
                         },
                         {
                             "timestamp": datetime.utcnow().isoformat(),
                             "stage": "agent_investigation_closed",
                             "risk_score": bank_risk_score,
                             "confidence": agent_confidence,
-                            "note": f"Completed GraphRAG investigation. Verdict: {verdict.upper()}",
+                            "note": f"Completed GraphRAG investigation. Verdict: {verdict.upper()} (Posterior Fraud Prob: {fraud_prob:.2f}, Evidence Sufficiency: {agent_confidence:.2f})",
                         }
                     ],
                     "case": c_inner,

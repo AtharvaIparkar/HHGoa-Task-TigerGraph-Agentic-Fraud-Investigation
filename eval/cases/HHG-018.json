@@ -1,9 +1,11 @@
 {
   "case_id": "HHG-018",
+  "confidence_score": 0.98,
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
     "fraud_probability": 0.93,
+    "confidence_score": 0.98,
     "pattern": "card_not_present_fraud",
     "pattern_description": "",
     "affected_txn_ids": [

@@ -407,10 +407,12 @@ def execute_investigation(
 
     answer_payload = {
         "case_id": case_id,
+        "confidence_score": evidence_packet.confidence_score,
         "case": {
             "status": "closed_fraud" if verdict == "fraud" else "closed_legitimate",
             "verdict": verdict,
             "fraud_probability": final_prob,
+            "confidence_score": evidence_packet.confidence_score,
             "pattern": pattern,
             "pattern_description": pattern_description,
             "affected_txn_ids": affected_txns,

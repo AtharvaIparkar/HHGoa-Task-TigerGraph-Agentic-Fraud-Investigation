@@ -1,9 +1,11 @@
 {
   "case_id": "HHG-001",
+  "confidence_score": 0.98,
   "case": {
     "status": "closed_legitimate",
     "verdict": "legitimate",
     "fraud_probability": 0.04,
+    "confidence_score": 0.98,
     "pattern": "none",
     "pattern_description": "",
     "affected_txn_ids": [],

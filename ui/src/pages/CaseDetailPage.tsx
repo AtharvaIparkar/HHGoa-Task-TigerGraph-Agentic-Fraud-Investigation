@@ -148,9 +148,9 @@ export const CaseDetailPage: React.FC = () => {
       setCaseData((prev: any) => ({
         ...prev,
         verdict: "fraud",
-        confidence_score: 0.94,
+        confidence_score: 0.95, // evidence sufficiency is now high following customer feedback
         exposure_usd: prev?.exposure_usd || 128.33,
-        case: { ...prev.case, verdict: "fraud", fraud_probability: 0.94 },
+        case: { ...prev.case, verdict: "fraud", fraud_probability: 0.94, confidence_score: 0.95 },
         next_best_actions: {
           ...prev.next_best_actions,
           final: [
@@ -164,8 +164,8 @@ export const CaseDetailPage: React.FC = () => {
       setCaseData((prev: any) => ({
         ...prev,
         verdict: "legitimate",
-        confidence_score: 0.04,
-        case: { ...prev.case, verdict: "legitimate", fraud_probability: 0.04 },
+        confidence_score: 0.95, // evidence sufficiency is high: cardholder explicitly validated
+        case: { ...prev.case, verdict: "legitimate", fraud_probability: 0.04, confidence_score: 0.95 },
         sar: { file: false, reason: "Cardholder confirmed transaction", narrative: "", subjects: [], total_amount_usd: 0, activity_dates: [] },
         next_best_actions: {
           ...prev.next_best_actions,
@@ -224,12 +224,14 @@ export const CaseDetailPage: React.FC = () => {
 
   const { case: c, next_best_actions: nba, sar } = caseData;
   const verdict = caseData.verdict || c?.verdict || "pending";
-  const bankScore = typeof caseData.risk_score === "number" ? caseData.risk_score : 0.61;
-  const agentConfidence = typeof caseData.confidence_score === "number" ? caseData.confidence_score : c?.fraud_probability || 0.5;
+  const hasModelScore = typeof caseData.risk_score === "number" && !isNaN(caseData.risk_score);
+  const bankScore = hasModelScore ? (caseData.risk_score as number) : null;
+  const fraudProb = typeof c?.fraud_probability === "number" ? c.fraud_probability : (verdict === "fraud" ? 0.93 : 0.04);
+  const evidenceSufficiency = typeof caseData.confidence_score === "number" ? caseData.confidence_score : (typeof c?.confidence_score === "number" ? c.confidence_score : 0.85);
 
-  // Circular gauge mathematics for dynamic Bayesian ring
+  // Circular gauge mathematics for dynamic Bayesian ring (Assessed Fraud Risk)
   const strokeDash = 2 * Math.PI * 22; // radius = 22
-  const strokeOffset = strokeDash - strokeDash * agentConfidence;
+  const strokeOffset = strokeDash - strokeDash * fraudProb;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -282,7 +284,7 @@ export const CaseDetailPage: React.FC = () => {
                   cx="27"
                   cy="27"
                   r="22"
-                  stroke={agentConfidence > 0.7 ? "#e11d48" : "#059669"}
+                  stroke={fraudProb > 0.7 ? "#e11d48" : "#059669"}
                   strokeWidth="4"
                   strokeDasharray={strokeDash}
                   strokeDashoffset={strokeOffset}
@@ -292,16 +294,16 @@ export const CaseDetailPage: React.FC = () => {
                 />
               </svg>
               <div className="absolute text-[10px] sm:text-[11px] font-bold text-slate-900">
-                {(agentConfidence * 100).toFixed(0)}%
+                {(fraudProb * 100).toFixed(0)}%
               </div>
             </div>
             <div className="text-[10px] sm:text-[11px] leading-tight">
               <span className="text-slate-400 block text-[9px] uppercase font-bold">Assessed Risk</span>
               <span className="text-slate-900 font-bold">
-                {agentConfidence > 0.7 ? "High Alert" : "Cleared"}
+                {fraudProb > 0.7 ? "High Alert" : "Cleared"}
               </span>
               <span className="text-slate-400 text-[9px] block mt-0.5">
-                Model: {(bankScore * 100).toFixed(0)}/100
+                {bankScore !== null ? `Model: ${(bankScore * 100).toFixed(0)}/100` : `Alert: ${caseData.trigger_type || "Direct"}`} · Gate: {(evidenceSufficiency * 100).toFixed(0)}%
               </span>
             </div>
           </div>
