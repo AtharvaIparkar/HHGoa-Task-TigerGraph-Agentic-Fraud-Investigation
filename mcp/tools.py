@@ -92,30 +92,49 @@ def _run_query(query_name: str, params: dict) -> list:
 def _run_local_fallback_query(query_name: str, params: dict) -> list:
     """Provides local dataset query responses when TigerGraph Savanna is offline."""
     if query_name == "entity_transaction_history":
-        cid = params.get("customer_id") or "C12382"
-        card = params.get("card_id") or f"{cid}-K1"
+        cid = params.get("customer_id") or ""
+        card = params.get("card_id") or (f"{cid}-K1" if cid else "")
+        # Only return C12382 transactions if querying C12382
+        if cid == "C12382" or card == "C12382-K1":
+            return [{
+                "txn_count": 4,
+                "avg_amount": 62.45,
+                "total_amount": 249.80,
+                "max_risk_score": 0.61,
+                "transactions": [
+                    {"transaction_id": "3514030", "amount": 77.07, "timestamp": "2016-12-05 01:55:28", "risk_score": 0.61, "channel": "in_person", "billing_region": "444.0"},
+                    {"transaction_id": "3512991", "amount": 42.15, "timestamp": "2016-12-04 18:22:10", "risk_score": 0.12, "channel": "in_person", "billing_region": "444.0"},
+                    {"transaction_id": "3499102", "amount": 80.50, "timestamp": "2016-11-29 11:14:02", "risk_score": 0.08, "channel": "in_person", "billing_region": "444.0"},
+                    {"transaction_id": "3478120", "amount": 50.08, "timestamp": "2016-11-20 14:05:44", "risk_score": 0.15, "channel": "in_person", "billing_region": "444.0"},
+                ]
+            }]
         return [{
-            "txn_count": 4,
-            "avg_amount": 62.45,
-            "total_amount": 249.80,
-            "max_risk_score": 0.61,
-            "transactions": [
-                {"transaction_id": "3514030", "amount": 77.07, "timestamp": "2016-12-05 01:55:28", "risk_score": 0.61, "channel": "in_person", "billing_region": "444.0"},
-                {"transaction_id": "3512991", "amount": 42.15, "timestamp": "2016-12-04 18:22:10", "risk_score": 0.12, "channel": "in_person", "billing_region": "444.0"},
-                {"transaction_id": "3499102", "amount": 80.50, "timestamp": "2016-11-29 11:14:02", "risk_score": 0.08, "channel": "in_person", "billing_region": "444.0"},
-                {"transaction_id": "3478120", "amount": 50.08, "timestamp": "2016-11-20 14:05:44", "risk_score": 0.15, "channel": "in_person", "billing_region": "444.0"},
-            ]
+            "txn_count": 1,
+            "avg_amount": 0.0,
+            "total_amount": 0.0,
+            "max_risk_score": 0.0,
+            "transactions": []
         }]
     elif query_name == "k_hop_expansion":
-        sid = params.get("start_id", "C12382")
+        sid = params.get("start_id", "")
+        if sid in ("C13487", "C08771", "C02194", "C09112"):
+            return [{
+                "entities": [
+                    {"entity_id": sid, "entity_type": "Customer", "hop": 0},
+                    {"entity_id": f"{sid}-K1", "entity_type": "Card", "hop": 1},
+                    {"entity_id": "DEV-889104b", "entity_type": "DeviceProfile", "hop": 2},
+                    {"entity_id": "C08771", "entity_type": "Customer", "hop": 2},
+                    {"entity_id": "C02194", "entity_type": "Customer", "hop": 2}
+                ],
+                "entity_type_counts": {"Customer": 3, "Card": 1, "DeviceProfile": 1},
+                "hop_count": int(params.get("k", 2))
+            }]
         return [{
             "entities": [
                 {"entity_id": sid, "entity_type": "Customer", "hop": 0},
-                {"entity_id": f"{sid}-K1", "entity_type": "Card", "hop": 1},
-                {"entity_id": "DEV-329188a", "entity_type": "DeviceProfile", "hop": 2},
-                {"entity_id": "C08771", "entity_type": "Customer", "hop": 2}
-            ],
-            "entity_type_counts": {"Customer": 2, "Card": 1, "DeviceProfile": 1},
+                {"entity_id": f"{sid}-K1", "entity_type": "Card", "hop": 1}
+            ] if sid else [],
+            "entity_type_counts": {"Customer": 1, "Card": 1} if sid else {},
             "hop_count": int(params.get("k", 2))
         }]
     elif query_name == "shared_attribute_ring_detection":
@@ -181,14 +200,45 @@ def _run_local_fallback_query(query_name: str, params: dict) -> list:
                 ]
             }]
     elif query_name == "case_subgraph_extraction":
-        cid = params.get("case_id", "HHG-001")
+        cid = params.get("case_id", "")
+        # Resolve authoritative entities dynamically
+        txn_id = "TXN-UNKNOWN"
+        cust_id = "C-UNKNOWN"
+        card_id = "CARD-UNKNOWN"
+        amount = 0.0
+        risk_score = 0.50
+        try:
+            import csv, re
+            case_pack_path = Path(__file__).resolve().parent.parent / "data" / "case_pack.csv"
+            if case_pack_path.exists():
+                with open(case_pack_path, "r", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        if row.get("case_id") == cid:
+                            txn_id = row.get("flagged_txn_id") or txn_id
+                            cust_id = row.get("customer_id") or cust_id
+                            card_id = row.get("card_id") or card_id
+                            trigger = row.get("trigger_text", "")
+                            m = re.search(r'\$([0-9,]+\.[0-9]{2})', trigger)
+                            if m:
+                                amount = float(m.group(1).replace(",", ""))
+                            risk_str = row.get("risk_score")
+                            if risk_str:
+                                try:
+                                    risk_score = float(risk_str)
+                                except ValueError:
+                                    pass
+                            break
+        except Exception:
+            pass
+
         return [{
             "case_id": cid,
-            "fraud_case": {"case_id": cid, "status": "investigating", "risk_score": 0.61, "confidence_score": 0.78},
-            "transactions": [{"transaction_id": "3514030", "amount": 77.07, "risk_score": 0.61}],
-            "customers": [{"customer_id": "C12382", "risk_tier": "medium"}],
-            "cards": [{"card_id": "C12382-K1", "card_type": "credit"}],
-            "evidence": [{"claim": "Out-of-region card-present transaction", "source": "graph"}]
+            "fraud_case": {"case_id": cid, "status": "investigating", "risk_score": risk_score, "confidence_score": 0.78},
+            "transactions": [{"transaction_id": txn_id, "amount": amount, "risk_score": risk_score}],
+            "customers": [{"customer_id": cust_id, "risk_tier": "medium"}],
+            "cards": [{"card_id": card_id, "card_type": "credit"}],
+            "evidence": [{"claim": f"Transaction {txn_id} on card {card_id}", "source": "graph"}]
         }]
     return []
 

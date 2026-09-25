@@ -74,26 +74,26 @@ export const CaseDetailPage: React.FC = () => {
         ? "Multiple cards observed using shared device profile DEV-889104b."
         : isHighSpend
         ? "High exposure transaction 3506725 ($1,000.03, online) flagged by risk model."
-        : "Real-time model flagged transaction 3514030 ($77.07, billing region 444.0).",
-      flagged_txn_id: isHighSpend ? "3506725" : isRing ? "3478561" : "3514030",
-      card_id: isHighSpend ? "C10434-K1" : isRing ? "C13487-K1" : "C12382-K1",
-      customer_id: isHighSpend ? "C10434" : isRing ? "C13487" : "C12382",
-      risk_score: isHighSpend ? 0.9 : isRing ? 0.7 : 0.61,
-      confidence_score: isRing ? 0.92 : isHighSpend ? 0.88 : 0.04,
-      verdict: isRing || isHighSpend ? "fraud" : "legitimate",
+        : `Transaction for case ${caseId} flagged by risk model.`,
+      flagged_txn_id: isHighSpend ? "3506725" : isRing ? "3478561" : `TXN-${caseId}`,
+      card_id: isHighSpend ? "C10434-K1" : isRing ? "C13487-K1" : `CARD-${caseId}`,
+      customer_id: isHighSpend ? "C10434" : isRing ? "C13487" : `CUST-${caseId}`,
+      risk_score: isHighSpend ? 0.9 : isRing ? 0.7 : 0.50,
+      confidence_score: isRing ? 0.92 : isHighSpend ? 0.88 : 0.50,
+      verdict: isRing || isHighSpend ? "fraud" : "under_review",
       exposure_usd: isHighSpend ? 1000.03 : isRing ? 77.07 : 0.0,
       case: {
-        verdict: isRing || isHighSpend ? "fraud" : "legitimate",
-        fraud_probability: isRing ? 0.92 : isHighSpend ? 0.88 : 0.04,
+        verdict: isRing || isHighSpend ? "fraud" : "under_review",
+        fraud_probability: isRing ? 0.92 : isHighSpend ? 0.88 : 0.50,
         pattern: isRing ? "device_sharing_ring" : isHighSpend ? "card_not_present_fraud" : "single_merchant_low_risk",
         exposure_usd: isHighSpend ? 1000.03 : isRing ? 77.07 : 0.0,
         evidence: [
-          { claim: `Transaction authorized for $${isHighSpend ? "1,000.03" : "77.07"} via payment gateway`, source: "graph", ref: "get_transaction_detail", entity_ids: [isHighSpend ? "3506725" : isRing ? "3478561" : "3514030"] },
+          { claim: `Transaction under investigation for ${caseId}`, source: "graph", ref: "get_transaction_detail", entity_ids: [isHighSpend ? "3506725" : isRing ? "3478561" : `TXN-${caseId}`] },
           { claim: isRing ? "Device profile shared across 3 accounts" : "Transaction velocity within expected customer baseline", source: "graph", ref: "shared_attribute_ring_detection", entity_ids: ["DEV-889104b"] },
           { claim: "Prior institutional case CC-0141 confirmed pattern match", source: "graph", ref: "prior_case_similarity", entity_ids: ["CC-0141"] },
         ],
         similar_prior_cases: ["CC-0141"],
-        summary: `Investigation into alert ${caseId} completed. Evidence indicates ${isRing ? "coordinated device sharing" : isHighSpend ? "unauthorized card-not-present transaction" : "verified cardholder purchase"}.`,
+        summary: `Investigation into alert ${caseId} in progress.`,
       },
       next_best_actions: {
         initial: [
@@ -119,13 +119,17 @@ export const CaseDetailPage: React.FC = () => {
   }
 
   function generateFallbackSubgraph(caseId: string, dossier: any): { nodes: GraphNode[]; links: GraphLink[] } {
-    const txnId = dossier?.flagged_txn_id || "3514030";
-    const custId = dossier?.customer_id || "C12382";
+    const txnId = dossier?.flagged_txn_id || (caseId ? `TXN-${caseId.replace('HHG-', '')}` : 'TXN-PENDING');
+    const custId = dossier?.customer_id || (caseId ? `C-${caseId.replace('HHG-', '')}` : 'C-PENDING');
     const cardId = dossier?.card_id || `${custId}-K1`;
     const verdict = dossier?.verdict || "legitimate";
 
+    // Extract authentic transaction amount from trigger_text if available
+    const parsedAmount = dossier?.trigger_text?.match(/\$([0-9,]+\.[0-9]{2})/)?.[1]?.replace(/,/g, '');
+    const amountVal = parsedAmount ? parseFloat(parsedAmount) : (dossier?.exposure_usd || 0.0);
+
     const nodes: GraphNode[] = [
-      { id: `txn_${txnId}`, label: `Txn ${txnId}`, type: "transaction", status: verdict === "fraud" ? "flagged" : "verified", details: { amount_usd: dossier?.exposure_usd || 77.07, risk_score: dossier?.risk_score || 0.61 } },
+      { id: `txn_${txnId}`, label: `Txn ${txnId}`, type: "transaction", status: verdict === "fraud" ? "flagged" : "verified", details: { amount_usd: amountVal, exposure_usd: dossier?.exposure_usd || 0.0, risk_score: dossier?.risk_score || 0.50 } },
       { id: `cust_${custId}`, label: `Customer ${custId}`, type: "customer", status: "subject", details: { customer_id: custId } },
       { id: `card_${cardId}`, label: `Card ${cardId}`, type: "card", status: verdict === "fraud" ? "compromised" : "active", details: { card_id: cardId } },
       { id: `dev_${caseId}`, label: "Device Fingerprint", type: "device", status: "verified", details: { fingerprint: "Samsung SM-G892A" } },
