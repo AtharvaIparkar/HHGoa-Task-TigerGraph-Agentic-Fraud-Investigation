@@ -298,7 +298,8 @@ class GraphRAGAssembler:
         # Extract billing region from trigger if mentioned
         match_reg = re.search(r'region\s+([0-9\.]+)', trigger_text, re.IGNORECASE)
         billing_region = match_reg.group(1) if match_reg else str(txn_detail.get("billing_region", txn_detail.get("addr1", "Unknown")))
-        risk_score = float(risk_score_input or txn_detail.get("risk_score", 0.5))
+        has_model_risk = risk_score_input is not None and str(risk_score_input).strip() != ""
+        risk_score = float(risk_score_input) if has_model_risk else None
 
         dev_id = txn_detail.get("device_profile_id") or ("DEV-889104b" if "device" in trigger_text.lower() else "DEV-UNKNOWN")
 
@@ -311,9 +312,18 @@ class GraphRAGAssembler:
             "billing_region": billing_region,
             "device_profile_id": dev_id,
         }
-        
+
+        if has_model_risk:
+            claim_text = f"Flagged transaction {flagged_txn_id} authorized for ${amount:.2f} ({channel}) with bank detection model score {risk_score:.2f}"
+        elif trigger_type == "customer_report":
+            claim_text = f"Flagged transaction {flagged_txn_id} authorized for ${amount:.2f} ({channel}) reported as unauthorized by cardholder"
+        elif trigger_type == "analyst_request":
+            claim_text = f"Flagged transaction {flagged_txn_id} authorized for ${amount:.2f} ({channel}) flagged for cross-card device syndicate review"
+        else:
+            claim_text = f"Flagged transaction {flagged_txn_id} authorized for ${amount:.2f} ({channel})"
+
         evidence_items.append(EvidenceItem(
-            claim=f"Flagged transaction {flagged_txn_id} authorized for ${amount:.2f} ({channel}) with model score {risk_score:.2f}",
+            claim=claim_text,
             source="graph",
             ref="get_transaction_detail",
             entity_ids=[flagged_txn_id],
@@ -447,8 +457,13 @@ class GraphRAGAssembler:
             ))
 
         # ── 7. Evidence Sufficiency Gating Score (Differentiator B) ──────────
-        total_weight = sum(item.weight for item in evidence_items)
-        confidence_score = min(0.98, round(total_weight / 2.0, 2))
+        # Evidence sufficiency measures whether standalone multi-hop graph corroboration is
+        # adequate (>= 0.70) or whether the agent must pause for cardholder verification (Rule R1).
+        # Factual graph observations carry primary weight; policy citations carry supportive reference weight.
+        graph_facts_weight = sum(item.weight for item in evidence_items if item.source == "graph")
+        doc_weight = sum(item.weight for item in evidence_items if item.source == "document") * 0.15
+        confidence_score = min(0.96, round((graph_facts_weight + doc_weight) / 1.60, 2))
+        confidence_score = max(0.40, confidence_score)
         evidence_sufficient = confidence_score >= 0.70
 
         # ── 8. Synthesized Prompt Construction (< 3000 tokens) ────────────────

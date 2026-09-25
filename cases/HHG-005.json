@@ -1,11 +1,11 @@
 {
   "case_id": "HHG-005",
-  "confidence_score": 0.98,
+  "confidence_score": 0.96,
   "case": {
     "status": "closed_legitimate",
     "verdict": "legitimate",
     "fraud_probability": 0.04,
-    "confidence_score": 0.98,
+    "confidence_score": 0.96,
     "pattern": "none",
     "pattern_description": "",
     "affected_txn_ids": [],
@@ -15,7 +15,7 @@
     "exposure_usd": 0.0,
     "evidence": [
       {
-        "claim": "Flagged transaction 3523199 authorized for $100.07 (online) with model score 0.54",
+        "claim": "Flagged transaction 3523199 authorized for $100.07 (online) with bank detection model score 0.54",
         "source": "graph",
         "ref": "get_transaction_detail",
         "entity_ids": [
@@ -23,27 +23,19 @@
         ]
       },
       {
-        "claim": "Velocity burst detected on card C02923-K1: 2 transactions in 24h",
-        "source": "graph",
-        "ref": "velocity_burst_detection",
-        "entity_ids": [
-          "C02923-K1"
-        ]
-      },
-      {
-        "claim": "Institutional memory match CC-0141: confirmed out_of_region_use with exposure $268.43. Actions: CREATE_CASE|BLOCK_CARD",
+        "claim": "Institutional memory match CC-0001: confirmed card_not_present_fraud with exposure $155.43. Actions: CREATE_CASE|BLOCK_CARD",
         "source": "graph",
         "ref": "prior_case_similarity",
         "entity_ids": [
-          "CC-0141"
+          "CC-0001"
         ]
       },
       {
-        "claim": "Institutional memory match CC-0002: confirmed out_of_region_use with exposure $117.05. Actions: CREATE_CASE|BLOCK_CARD",
+        "claim": "Institutional memory match CC-0007: confirmed card_not_present_fraud with exposure $99.91. Actions: CREATE_CASE|BLOCK_CARD",
         "source": "graph",
         "ref": "prior_case_similarity",
         "entity_ids": [
-          "CC-0002"
+          "CC-0007"
         ]
       },
       {
@@ -63,11 +55,19 @@
         "source": "document",
         "ref": "PAT_OUT_REGION",
         "entity_ids": []
+      },
+      {
+        "claim": "Customer confirmed legitimate authorization of flagged transaction",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": [
+          "C02923"
+        ]
       }
     ],
     "similar_prior_cases": [
-      "CC-0141",
-      "CC-0002"
+      "CC-0001",
+      "CC-0007"
     ],
     "summary": "Investigation into alert on card C02923-K1 resolved as legitimate activity under policy rule R3. Customer validation confirmed charge validity. Alert closed without customer disruption.",
     "written_to_graph": true,

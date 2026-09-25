@@ -1,11 +1,11 @@
 {
   "case_id": "HHG-001",
-  "confidence_score": 0.98,
+  "confidence_score": 0.96,
   "case": {
     "status": "closed_legitimate",
     "verdict": "legitimate",
     "fraud_probability": 0.04,
-    "confidence_score": 0.98,
+    "confidence_score": 0.96,
     "pattern": "none",
     "pattern_description": "",
     "affected_txn_ids": [],
@@ -15,19 +15,11 @@
     "exposure_usd": 0.0,
     "evidence": [
       {
-        "claim": "Flagged transaction 3514030 authorized for $77.07 (unknown) with model score 0.61",
+        "claim": "Flagged transaction 3514030 authorized for $77.07 (unknown) with bank detection model score 0.61",
         "source": "graph",
         "ref": "get_transaction_detail",
         "entity_ids": [
           "3514030"
-        ]
-      },
-      {
-        "claim": "Velocity burst detected on card C12382-K1: 2 transactions in 24h",
-        "source": "graph",
-        "ref": "velocity_burst_detection",
-        "entity_ids": [
-          "C12382-K1"
         ]
       },
       {
@@ -63,6 +55,14 @@
         "source": "document",
         "ref": "R3",
         "entity_ids": []
+      },
+      {
+        "claim": "Customer confirmed legitimate authorization of flagged transaction",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": [
+          "C12382"
+        ]
       }
     ],
     "similar_prior_cases": [
@@ -108,5 +108,5 @@
   "stop_reason": "Customer confirmation confirmed legitimate authorization; case safely resolved.",
   "tool_calls": 7,
   "tokens": 4250,
-  "latency_s": 0.03
+  "latency_s": 0.06
 }

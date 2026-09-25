@@ -1,11 +1,11 @@
 {
   "case_id": "HHG-007",
-  "confidence_score": 0.98,
+  "confidence_score": 0.96,
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
     "fraud_probability": 0.92,
-    "confidence_score": 0.98,
+    "confidence_score": 0.96,
     "pattern": "out_of_region_use",
     "pattern_description": "",
     "affected_txn_ids": [
@@ -17,7 +17,7 @@
     "exposure_usd": 111.92,
     "evidence": [
       {
-        "claim": "Flagged transaction 3514948 authorized for $111.92 (unknown) with model score 0.87",
+        "claim": "Flagged transaction 3514948 authorized for $111.92 (unknown) with bank detection model score 0.87",
         "source": "graph",
         "ref": "get_transaction_detail",
         "entity_ids": [
@@ -65,6 +65,14 @@
         "source": "document",
         "ref": "R3",
         "entity_ids": []
+      },
+      {
+        "claim": "Customer denied authorizing the purchase when verified",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": [
+          "C09933"
+        ]
       }
     ],
     "similar_prior_cases": [
@@ -120,5 +128,5 @@
   "stop_reason": "Customer denial settled the verdict; card blocked and exposure bounded.",
   "tool_calls": 7,
   "tokens": 4250,
-  "latency_s": 0.0
+  "latency_s": 0.01
 }

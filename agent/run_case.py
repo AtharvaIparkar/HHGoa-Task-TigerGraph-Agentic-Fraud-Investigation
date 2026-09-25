@@ -246,16 +246,29 @@ def execute_investigation(
         if verbose:
             print(f"\n[STEP 6/8: GATHER MORE] Updating Bayesian probability from verification response")
 
-        if "denies" in assumed_resp.lower() or "did not make" in assumed_resp.lower():
+        is_denial = "denies" in assumed_resp.lower() or "did not make" in assumed_resp.lower()
+        if is_denial:
             final_prob = min(0.96, prelim_prob + 0.28)
             verdict = "fraud"
+            claim_text = "Customer denied authorizing the purchase when verified"
             if verbose:
                 print(f"  Result: Customer denial increases fraud probability {prelim_prob:.2f} -> {final_prob:.2f}")
         else:
             final_prob = max(0.04, prelim_prob - 0.45)
             verdict = "legitimate"
+            claim_text = "Customer confirmed legitimate authorization of flagged transaction"
             if verbose:
                 print(f"  Result: Customer confirmation lowers fraud probability {prelim_prob:.2f} -> {final_prob:.2f}")
+
+        from agent.graphrag import EvidenceItem
+        evidence_packet.evidence_list.append(EvidenceItem(
+            claim=claim_text,
+            source="customer",
+            ref="evidence_request:1",
+            entity_ids=[customer_id],
+            weight=0.50,
+        ))
+        evidence_packet.confidence_score = min(0.96, round(evidence_packet.confidence_score + 0.25, 2))
     else:
         if verbose:
             print(f"\n[STEP 5 & 6 SKIPPED] Sufficient standalone graph evidence available (Confidence >= 0.75)")
