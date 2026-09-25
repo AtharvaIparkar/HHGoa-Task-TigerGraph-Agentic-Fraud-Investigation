@@ -37,18 +37,21 @@ async def graph_stats():
     """Returns vertex and edge counts for the FraudGraph, and connected component summary."""
     try:
         from mcp import tools as tg_tools
+        conn = tg_tools._get_conn()
+        tg_connected = conn is not None
         components_result = tg_tools.find_connected_components(min_component_size=2)
         components = components_result.get("components", [])
-        tg_connected = True
     except Exception:
         components = []
         tg_connected = False
 
     return {
-        "vertex_counts": {"Customer": "~200K", "Transaction": "~590K", "Card": "~200K", "DeviceProfile": "~150K"},
+        "vertex_counts": {"Customer": "~24K", "Transaction": "~590K", "Card": "~24K", "DeviceProfile": "~38K"},
         "edge_counts": {"SHARED_DEVICE_PROFILE": len(components) * 3, "CASE_SIMILAR_TO": 40},
         "graph_name": "FraudGraph",
         "tigergraph_connected": tg_connected,
+        "mode": "live" if tg_connected else "offline_demo",
+        "message": "Live TigerGraph connection active." if tg_connected else "Operating in offline demonstration mode. Set TIGERGRAPH_HOST to connect to live TigerGraph Savanna.",
         "syndicate_rings": len(components),
         "components": components,
     }

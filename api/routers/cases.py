@@ -236,8 +236,10 @@ def _build_subgraph_for_case(case: dict) -> dict:
     cust_id = case.get("customer_id") or "C12382"
     card_id = case.get("card_id") or f"{cust_id}-K1"
     verdict = case.get("verdict", "pending")
-    exposure = float(case.get("exposure_usd", 0.0))
-    risk_score = float(case.get("risk_score", 0.5))
+    raw_exp = case.get("exposure_usd") if case.get("exposure_usd") is not None else c_inner.get("exposure_usd")
+    exposure = float(raw_exp) if raw_exp is not None else 0.0
+    raw_rs = case.get("risk_score")
+    risk_score = float(raw_rs) if raw_rs is not None else 0.5
 
     nodes: List[dict] = []
     links: List[dict] = []
@@ -288,7 +290,7 @@ def _build_subgraph_for_case(case: dict) -> dict:
         "subject",
         {"customer_id": cust_id}
     )
-    add_link(txn_node_id, cust_node_id, "PERFORMED_BY", 1.0, is_primary=True)
+    add_link(cust_node_id, txn_node_id, "MADE_TRANSACTION", 1.0, is_primary=True)
 
     # 3. Primary Payment Card
     card_node_id = f"card_{card_id}"
@@ -299,8 +301,8 @@ def _build_subgraph_for_case(case: dict) -> dict:
         "compromised" if verdict == "fraud" else "active",
         {"card_id": card_id}
     )
-    add_link(txn_node_id, card_node_id, "PAID_WITH", 1.0, is_primary=True)
-    add_link(cust_node_id, card_node_id, "HOLDS_CARD", 1.0)
+    add_link(txn_node_id, card_node_id, "TRANSACTION_WITH_CARD", 1.0, is_primary=True)
+    add_link(cust_node_id, card_node_id, "OWNS_CARD", 1.0)
 
     # 4. Device Profile (if detected)
     devices = c_inner.get("connected_device_profiles", [])
@@ -315,7 +317,7 @@ def _build_subgraph_for_case(case: dict) -> dict:
                 "suspicious" if verdict == "fraud" else "verified",
                 {"full_user_agent": dev}
             )
-            add_link(txn_node_id, dev_id, "USED_DEVICE", 1.2)
+            add_link(txn_node_id, dev_id, "TRANSACTION_ON_DEVICE_PROFILE", 1.2)
             add_link(card_node_id, dev_id, "SHARED_DEVICE_PROFILE", 1.0)
     else:
         # Default device node for completeness
@@ -327,7 +329,7 @@ def _build_subgraph_for_case(case: dict) -> dict:
             "verified",
             {"fingerprint": "Clean browser canvas"}
         )
-        add_link(txn_node_id, dev_id, "USED_DEVICE", 0.8)
+        add_link(txn_node_id, dev_id, "TRANSACTION_ON_DEVICE_PROFILE", 0.8)
 
     # 5. Connected Syndicate Cards in Ring (if any)
     connected_cards = c_inner.get("connected_card_ids", [])
@@ -341,7 +343,7 @@ def _build_subgraph_for_case(case: dict) -> dict:
                 "syndicate",
                 {"card_id": other_card, "ring_member": True}
             )
-            add_link(card_node_id, other_id, "CONNECTED_RING", 1.5)
+            add_link(card_node_id, other_id, "SHARED_CARD", 1.5)
 
     # 6. Cited Prior Cases (Institutional Memory)
     prior_cases = c_inner.get("similar_prior_cases", [])
@@ -549,8 +551,8 @@ async def get_similar_cases(case_id: str, top_k: int = Query(5, ge=1, le=20)):
             "case_id": pid,
             "similarity_score": 0.84,   # computed via CASE_SIMILAR_TO edge similarity
             "decision": prior.get("verdict", "unknown") if prior else "fraud",
-            "risk_score": float(prior.get("risk_score", 0.0)) if prior else 0.0,
-            "confidence_score": float(prior.get("confidence_score", 0.0)) if prior else 0.0,
+            "risk_score": float(prior.get("risk_score") or 0.0) if prior else 0.0,
+            "confidence_score": float(prior.get("confidence_score") or 0.0) if prior else 0.0,
             "sar_required": prior.get("sar_required", False) if prior else False,
             "total_exposure": float(prior.get("exposure_usd", 0.0)) if prior else 0.0,
             "investigation_notes": prior.get("case", {}).get("summary", f"Prior case {pid} retrieved from institutional memory.") if prior else f"External prior case {pid} from graph memory.",
