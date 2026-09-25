@@ -3,25 +3,19 @@
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
-    "fraud_probability": 0.95,
+    "fraud_probability": 0.96,
     "pattern": "card_not_present_new_device",
     "pattern_description": "",
     "affected_txn_ids": [
       "3478561"
     ],
     "first_suspicious_txn_id": "3478561",
-    "connected_card_ids": [
-      "C12382-K1",
-      "C08771-K1",
-      "C02194-K2"
-    ],
-    "connected_device_profiles": [
-      "DEV-889104b"
-    ],
-    "exposure_usd": 77.07,
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
     "evidence": [
       {
-        "claim": "Flagged transaction 3478561 authorized for $77.07 (in_person) with model score 0.61",
+        "claim": "Flagged transaction 3478561 authorized for $0.00 (unknown) with model score 0.00",
         "source": "graph",
         "ref": "get_transaction_detail",
         "entity_ids": [
@@ -34,17 +28,6 @@
         "ref": "velocity_burst_detection",
         "entity_ids": [
           "C13487-K1"
-        ]
-      },
-      {
-        "claim": "Graph ring detected: Device profile DEV-889104b is shared across 3 customers (C12382, C08771, C02194)",
-        "source": "graph",
-        "ref": "shared_attribute_ring_detection",
-        "entity_ids": [
-          "DEV-889104b",
-          "C12382-K1",
-          "C08771-K1",
-          "C02194-K2"
         ]
       },
       {
@@ -64,6 +47,12 @@
         ]
       },
       {
+        "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
+        "source": "document",
+        "ref": "PAT_OUT_REGION",
+        "entity_ids": []
+      },
+      {
         "claim": "Policy constraint R6: Rule R6: Shared Origin & Syndicate Detection",
         "source": "document",
         "ref": "R6",
@@ -74,23 +63,23 @@
         "source": "document",
         "ref": "R2",
         "entity_ids": []
-      },
-      {
-        "claim": "Policy constraint PAT_OUT_REGION: Pattern: Out-of-Region Use",
-        "source": "document",
-        "ref": "PAT_OUT_REGION",
-        "entity_ids": []
       }
     ],
     "similar_prior_cases": [
       "CC-0141",
       "CC-0002"
     ],
-    "summary": "Investigation confirmed card not present new device on card C13487-K1 (Customer C13487). Flagged transaction 3478561 ($77.07) was verified as unauthorized under policy rule R2. Consistent with prior pattern seen in CC-0141. Card blocked to mitigate further exposure.",
+    "summary": "Investigation confirmed card not present new device on card C13487-K1 (Customer C13487). Flagged transaction 3478561 ($0.00) was verified as unauthorized under policy rule R2. Consistent with prior pattern seen in CC-0141. Card blocked to mitigate further exposure.",
     "written_to_graph": true,
     "graph_case_id": "CASE-2016-014"
   },
-  "evidence_requests": [],
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 4,
+      "assumed_response": "Customer denies authorization and confirms card is in their possession"
+    }
+  ],
   "next_best_actions": {
     "initial": [
       {
@@ -102,54 +91,29 @@
         "action": "CREATE_CASE",
         "route": "auto",
         "reason": "Section 3a: Internal case opened with evidence attached"
-      },
-      {
-        "action": "FILE_REPORT",
-        "route": "L2",
-        "reason": "Section 3a & R6: Shared device syndication / high exposure requires regulatory SAR"
       }
     ],
     "final": [
       {
         "action": "BLOCK_CARD",
         "route": "L1",
-        "reason": "R2: Confirmed unauthorized activity. Exposure $77.07 routed to L1"
+        "reason": "R2: Confirmed unauthorized activity. Exposure $0.00 routed to L1"
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
         "reason": "R2: Write full investigation record into graph"
-      },
-      {
-        "action": "FILE_REPORT",
-        "route": "L2",
-        "reason": "R2 & R6: Confirmed unauthorized use linked to shared origin or exceeding $1,000"
-      },
-      {
-        "action": "MONITOR_CONNECTED_CARDS",
-        "route": "auto",
-        "reason": "R6: Shared device profile links to connected cards ['C12382-K1', 'C08771-K1', 'C02194-K2']"
       }
     ],
-    "what_changed": "nothing"
+    "what_changed": "Customer denial confirmed unauthorized activity, raising fraud probability from 0.70 to 0.96 and escalating verification to immediate card block and case creation."
   },
   "sar": {
-    "file": true,
-    "reason": "Rule R6 & Section 3a: Confirmed unauthorized activity connects to shared device/card ring.",
-    "narrative": "This Suspicious Activity Report documents unauthorized financial transactions identified on account C13487 associated with payment card C13487-K1. On 2016-11-22, transaction 3478561 was initiated through the in_person channel under suspicious parameters matching the card not present new device typology. Total unauthorized exposure across the incident is $77.07 USD. Graph expansion identified connectivity to associated card(s) C12382-K1, C08771-K1, C02194-K2 via shared device profile DEV-889104b. Institutional investigation determined the activity was inconsistent with the cardholder's established transactional and regional baseline. In accordance with bank fraud policy, the card was blocked and scheduled for reissue, associated accounts were placed under elevated monitoring, and the transaction was declined to prevent further loss. This filing is submitted pursuant to FinCEN suspicious activity reporting mandates regarding cyber-enabled payment fraud.",
-    "subjects": [
-      "C13487",
-      "C13487-K1",
-      "C12382-K1",
-      "C08771-K1",
-      "C02194-K2",
-      "DEV-889104b"
-    ],
-    "total_amount_usd": 77.07,
-    "activity_dates": [
-      "2016-11-22",
-      "2016-11-22"
-    ]
+    "file": false,
+    "reason": "Policy Section 3a: Fraud exposure ($0.00) is below $1,000 threshold and no multi-account syndication was detected. Internal case record maintained without regulatory filing.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0.0,
+    "activity_dates": []
   },
   "stop_reason": "Customer denial settled the verdict; card blocked and exposure bounded.",
   "tool_calls": 7,

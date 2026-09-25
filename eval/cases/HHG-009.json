@@ -4,7 +4,7 @@
     "status": "closed_fraud",
     "verdict": "fraud",
     "fraud_probability": 0.93,
-    "pattern": "account_takeover",
+    "pattern": "card_not_present_fraud",
     "pattern_description": "",
     "affected_txn_ids": [
       "3581141"
@@ -15,7 +15,7 @@
     "exposure_usd": 30.02,
     "evidence": [
       {
-        "claim": "Flagged transaction 3581141 authorized for $30.02 (in_person) with model score 0.61",
+        "claim": "Flagged transaction 3581141 authorized for $30.02 (unknown) with model score 0.00",
         "source": "graph",
         "ref": "get_transaction_detail",
         "entity_ids": [
@@ -69,7 +69,7 @@
       "CC-0141",
       "CC-0002"
     ],
-    "summary": "Investigation confirmed account takeover on card C08299-K1 (Customer C08299). Flagged transaction 3581141 ($30.02) was verified as unauthorized under policy rule R2. Consistent with prior pattern seen in CC-0141. Card blocked to mitigate further exposure.",
+    "summary": "Investigation confirmed card not present fraud on card C08299-K1 (Customer C08299). Flagged transaction 3581141 ($30.02) was verified as unauthorized under policy rule R2. Consistent with prior pattern seen in CC-0141. Card blocked to mitigate further exposure.",
     "written_to_graph": true,
     "graph_case_id": "CASE-2016-009"
   },

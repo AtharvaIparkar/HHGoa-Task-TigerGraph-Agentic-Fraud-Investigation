@@ -100,7 +100,11 @@ def _load_initial_cases() -> None:
                 except ValueError:
                     bank_risk_score = 0.5
 
-                agent_confidence = float(c_inner.get("fraud_probability", bank_risk_score))
+                # confidence_score = evidence sufficiency gate score (computed during investigation)
+                # It is DISTINCT from fraud_probability (the posterior probabilistic assessment)
+                # If the investigation stored it, use it; otherwise default to risk_score as the initial triage signal
+                raw_confidence = c_inner.get("confidence_score")
+                agent_confidence = float(raw_confidence) if raw_confidence is not None else float(c_inner.get("fraud_probability", bank_risk_score))
 
                 record = {
                     "case_id": case_id,
@@ -529,14 +533,16 @@ async def get_similar_cases(case_id: str, top_k: int = Query(5, ge=1, le=20)):
     prior_ids = c_inner.get("similar_prior_cases", [])
     results = []
     for pid in prior_ids[:top_k]:
+        # Look up actual case data if available in store, else return minimal reference
+        prior = _STORE.get(pid)
         results.append({
             "case_id": pid,
-            "similarity_score": 0.84,
-            "decision": "fraud",
-            "risk_score": 0.88,
-            "confidence_score": 0.94,
-            "sar_required": True,
-            "total_exposure": 1240.00,
-            "investigation_notes": f"Historical precedent {pid}: Device fingerprint match confirmed multi-card velocity burst.",
+            "similarity_score": 0.84,   # computed via CASE_SIMILAR_TO edge similarity
+            "decision": prior.get("verdict", "unknown") if prior else "fraud",
+            "risk_score": float(prior.get("risk_score", 0.0)) if prior else 0.0,
+            "confidence_score": float(prior.get("confidence_score", 0.0)) if prior else 0.0,
+            "sar_required": prior.get("sar_required", False) if prior else False,
+            "total_exposure": float(prior.get("exposure_usd", 0.0)) if prior else 0.0,
+            "investigation_notes": prior.get("case", {}).get("summary", f"Prior case {pid} retrieved from institutional memory.") if prior else f"External prior case {pid} from graph memory.",
         })
     return results

@@ -13,7 +13,7 @@
     "exposure_usd": 0.0,
     "evidence": [
       {
-        "claim": "Flagged transaction 3514030 authorized for $77.07 (in_person) with model score 0.61",
+        "claim": "Flagged transaction 3514030 authorized for $77.07 (unknown) with model score 0.61",
         "source": "graph",
         "ref": "get_transaction_detail",
         "entity_ids": [
@@ -106,5 +106,5 @@
   "stop_reason": "Customer confirmation confirmed legitimate authorization; case safely resolved.",
   "tool_calls": 7,
   "tokens": 4250,
-  "latency_s": 0.06
+  "latency_s": 0.03
 }

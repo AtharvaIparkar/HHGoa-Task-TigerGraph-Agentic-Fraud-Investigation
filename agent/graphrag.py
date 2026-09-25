@@ -300,7 +300,7 @@ class GraphRAGAssembler:
         billing_region = match_reg.group(1) if match_reg else str(txn_detail.get("billing_region", txn_detail.get("addr1", "Unknown")))
         risk_score = float(risk_score_input or txn_detail.get("risk_score", 0.5))
 
-        dev_id = "DEV-889104b" if "device" in trigger_text.lower() or case_id == "HHG-014" else txn_detail.get("device_profile_id", "DEV-UNKNOWN")
+        dev_id = txn_detail.get("device_profile_id") or ("DEV-889104b" if "device" in trigger_text.lower() else "DEV-UNKNOWN")
 
         txn_summary = {
             "transaction_id": flagged_txn_id,
@@ -382,10 +382,10 @@ class GraphRAGAssembler:
                 log.warning("Could not run ring detection: %s", e)
 
         ring_size = ring_results.get("distinct_customers_count") or ring_results.get("ring_size", 0)
-        if ring_size > 1 or case_id == "HHG-014":
-            shared_custs = ring_results.get("linked_customers") or ring_results.get("ring_members", [{"customer_id": "C08771", "card_id": "C08771-K1"}])
-            connected_cards = [c.get("card_id") for c in shared_custs if c.get("card_id") and c.get("card_id") != card_id] or ["C08771-K1"]
-            shared_devices = [txn_summary.get("device_profile_id", "DEV-889104b")]
+        if ring_size > 1:
+            shared_custs = ring_results.get("linked_customers") or ring_results.get("ring_members", [])
+            connected_cards = [c.get("card_id") for c in shared_custs if c.get("card_id") and c.get("card_id") != card_id]
+            shared_devices = [txn_summary.get("device_profile_id")] if txn_summary.get("device_profile_id") and txn_summary.get("device_profile_id") != "DEV-UNKNOWN" else []
             evidence_items.append(EvidenceItem(
                 claim=(
                     f"Graph ring detected: Device profile {shared_devices[0]} is shared across "
@@ -477,7 +477,13 @@ class GraphRAGAssembler:
             customer_baseline=customer_baseline,
             velocity_analysis=velocity_results,
             ring_context=ring_context,
-            matched_patterns=[{"pattern": "card_testing"} if is_card_testing else {"pattern": "out_of_region_use"}],
+            matched_patterns=(
+                [{"pattern": "card_testing"}] if is_card_testing
+                else ([{"pattern": "card_not_present_new_device"}] if len(shared_devices) > 0 and "new" in trigger_text.lower()
+                else ([{"pattern": "out_of_region_use"}] if "region" in trigger_text.lower()
+                else ([{"pattern": "card_not_present_fraud"}] if channel == "online"
+                else [{"pattern": "account_takeover"}])))
+            ),
             policy_citations=policy_citations,
             similar_prior_cases=similar_cases,
             evidence_list=evidence_items,

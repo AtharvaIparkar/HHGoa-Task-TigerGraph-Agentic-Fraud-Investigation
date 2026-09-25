@@ -13,7 +13,7 @@
     "exposure_usd": 0.0,
     "evidence": [
       {
-        "claim": "Flagged transaction 3514030 authorized for $77.07 (in_person) with model score 0.61",
+        "claim": "Flagged transaction 3514030 authorized for $77.07 (unknown) with model score 0.61",
         "source": "graph",
         "ref": "get_transaction_detail",
         "entity_ids": [

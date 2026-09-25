@@ -98,6 +98,7 @@ try:
     app.include_router(investigate.router, prefix="/api/v1/investigate", tags=["Investigation"])
     app.include_router(actions.router,     prefix="/api/actions",        tags=["Actions"])
     app.include_router(actions.router,     prefix="/api/v1/actions",     tags=["Actions"])
+    app.include_router(graph_router.router,prefix="/api/graph",          tags=["Graph"])
     app.include_router(graph_router.router,prefix="/api/v1/graph",       tags=["Graph"])
 except ImportError as exc:
     log.warning("routers_not_loaded", error=str(exc))

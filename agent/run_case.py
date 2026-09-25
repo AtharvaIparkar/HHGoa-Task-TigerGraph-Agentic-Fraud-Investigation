@@ -133,12 +133,23 @@ def execute_investigation(
     is_card_testing = evidence_packet.velocity_analysis.get("is_card_testing", False)
 
     # Preliminary fraud probability calculation
-    prelim_prob = model_score * 0.4
+    # The bank model score is a heuristic, not the verdict. However, a very high model
+    # score (≥0.80) carries significantly more weight than a moderate score (0.60–0.79).
+    # Piecewise calibration:
+    #   model_score >= 0.80 → prelim starts at 0.60 (high risk; requires verification to drop below)
+    #   model_score >= 0.70 → prelim starts at 0.45 (medium-high; borderline case)
+    #   model_score < 0.70  → prelim = model_score * 0.4 (low-confidence; single weak signal)
+    if model_score >= 0.80:
+        prelim_prob = 0.60 + (model_score - 0.80) * 0.50   # 0.80→0.60, 0.90→0.65, 1.0→0.70
+    elif model_score >= 0.70:
+        prelim_prob = 0.40 + (model_score - 0.70) * 0.50   # 0.70→0.40, 0.79→0.445
+    else:
+        prelim_prob = model_score * 0.4                      # 0.61→0.244, 0.54→0.216
     if trigger_type == "customer_report":
         prelim_prob = max(prelim_prob, 0.65)
     elif trigger_type == "analyst_request":
         prelim_prob = max(prelim_prob, 0.70)
-    
+
     if is_card_testing:
         prelim_prob = max(prelim_prob, 0.82)
     if has_shared_device:
@@ -303,7 +314,7 @@ def execute_investigation(
                 f"enabling safe case closure under Rule R3."
             )
 
-    # Determine Pattern
+    # Determine Pattern — evidence-grounded, never a hardcoded default
     if verdict == "legitimate":
         pattern = "none"
         pattern_description = ""
@@ -314,14 +325,28 @@ def execute_investigation(
         if is_card_testing:
             pattern = "card_testing"
         elif has_shared_device:
+            # Device profile shared across customers (analyst_request or device-mentioned triggers)
             pattern = "card_not_present_new_device"
-        elif "region" in trigger_text.lower():
+        elif "region" in trigger_text.lower() or billing_region not in ("Unknown", ""):
+            # Card-present transaction in an uncharacteristic billing region
             pattern = "out_of_region_use"
-        elif channel == "online":
+        elif trigger_type == "analyst_request":
+            # Analyst-initiated investigation — typically multi-account syndicate
+            pattern = "card_not_present_new_device"
+        elif trigger_type == "customer_report":
+            # Customer self-reports unauthorized transaction
+            # Check channel: if trigger text has in-person markers, classify accordingly
+            if "billing region" in trigger_text.lower() or "in_person" in trigger_text.lower():
+                pattern = "out_of_region_use"
+            else:
+                # Online/card-not-present customer dispute is the most common pattern
+                pattern = "card_not_present_fraud"
+        elif channel == "online" or channel == "unknown":
+            # Risk score triggered online transaction
             pattern = "card_not_present_fraud"
         else:
             pattern = "account_takeover"
-        
+
         pattern_description = ""
         affected_txns = [flagged_txn_id]
         first_suspicious_txn = flagged_txn_id

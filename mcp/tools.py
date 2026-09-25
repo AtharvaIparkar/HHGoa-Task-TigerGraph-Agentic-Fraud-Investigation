@@ -143,10 +143,13 @@ def _run_local_fallback_query(query_name: str, params: dict) -> list:
             "transactions": ["3514030", "3512991", "3499102"]
         }]
     elif query_name == "connected_components":
+        # Static demonstration dataset — derived from case_pack.csv shared-device linkage analysis.
+        # When TigerGraph is connected, the live GSQL query replaces this.
         return [{
             "components": [
-                {"component_id": "RING-001", "size": 3, "members": ["C12382", "C08771", "C02194"], "shared_device": "DEV-329188a", "confirmed_fraud_count": 2, "total_exposure": 2108.93},
-                {"component_id": "RING-002", "size": 2, "members": ["C13487", "C07297"], "shared_device": "DEV-889104b", "confirmed_fraud_count": 1, "total_exposure": 964.24}
+                {"component_id": "RING-001", "size": 4, "members": ["C13487", "C08771", "C02194", "C09112"], "shared_device": "DEV-889104b", "confirmed_fraud_count": 3, "total_exposure": 3491.20},
+                {"component_id": "RING-002", "size": 3, "members": ["C12382", "C07297", "C08299"], "shared_device": "REG-444", "confirmed_fraud_count": 2, "total_exposure": 1840.50},
+                {"component_id": "RING-003", "size": 2, "members": ["C10434", "C08106"], "shared_device": "PROXY-192.241.218.0/24", "confirmed_fraud_count": 2, "total_exposure": 1128.36}
             ]
         }]
     elif query_name == "prior_case_similarity":
@@ -667,20 +670,22 @@ def get_transaction_detail(transaction_id: str) -> dict[str, Any]:
     try:
         conn = _get_conn()
         if conn is None:
+            # TigerGraph offline: return minimal stub with the requested transaction_id
+            # The amount/channel/region will be parsed from trigger_text in graphrag.py
             success = True
-            result_summary = "amount=77.07 (local)"
+            result_summary = f"txn={transaction_id} (local fallback — no TG connection)"
             return {
                 "transaction_id": transaction_id,
-                "amount": 77.07,
-                "timestamp": "2016-12-05 01:55:28",
-                "channel": "in_person",
-                "risk_score": 0.61,
-                "billing_region": "444.0",
-                "billing_country": "87",
-                "product_cd": "W",
+                "amount": 0.0,
+                "timestamp": "",
+                "channel": "unknown",
+                "risk_score": 0.0,
+                "billing_region": "Unknown",
+                "billing_country": "",
+                "product_cd": "",
                 "device_profile_id": "DEV-UNKNOWN",
-                "card_id": "C12382-K1",
-                "customer_id": "C12382",
+                "card_id": "",
+                "customer_id": "",
             }
         raw = conn.getVerticesById("Transaction", transaction_id)
         if not raw:

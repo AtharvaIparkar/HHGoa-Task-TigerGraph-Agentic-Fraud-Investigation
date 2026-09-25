@@ -98,7 +98,7 @@
         "reason": "R3: Customer confirmed transaction validity; cleared without customer disruption"
       }
     ],
-    "what_changed": "Customer confirmation lowered assessed fraud probability from 0.31 to 0.04, enabling safe case closure under Rule R3."
+    "what_changed": "Customer confirmation lowered assessed fraud probability from 0.44 to 0.04, enabling safe case closure under Rule R3."
   },
   "sar": {
     "file": false,
@@ -111,5 +111,5 @@
   "stop_reason": "Customer confirmation confirmed legitimate authorization; case safely resolved.",
   "tool_calls": 7,
   "tokens": 4250,
-  "latency_s": 0.01
+  "latency_s": 0.0
 }
